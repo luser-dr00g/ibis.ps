@@ -114,7 +114,7 @@ dicttomark def
     dup /ini get exec % s d ?
     exch /fin get % s ? {}
     [ 3 1 roll /exec cvx ] cvx exch % undo s
-    %(short)= pstack()=
+    (short)= pstack()=
     delim
 } def
 
@@ -178,6 +178,13 @@ sigil { sigil settext } def % @@
     /fin {setfont}
 dicttomark newalter
 
+%/name /fontname fontsize  fontproc  - 
+/fontproc {
+    /currentfont cvx 3 1 roll /selectfont cvx 4 array astore cvx
+    mark exch /ini exch /fin {setfont} dicttomark newalter
+} def
+
+/b /Palatino-Bold 10 fontproc
 
 /default {
     text begin
@@ -196,16 +203,32 @@ dicttomark newalter
 default
 %currentfile /ibis load debug
 currentfile ibis
-initial test
-show
-this
-text please!
+Text is passed to the output.
+Only ragged-right, explicit linebreaks for now.
 
-Does the @i[italics] work?
-More @i(ITALICS).
-And yet more using @i<alternate syntax>.
-Also with @i{curlies}.
-PS workaround (add space) for @i `even stranger syntax', like @i :so;.
+There are various ways of executing a command to change
+a section of text. All commands are introduced by the @@  character,
+known internally as the "sigil".
+
+The simple command @@ i for italics, can use the short form 
+with various sets of delimiters.
+
+    @@ i[italics] @i[italics]
+    @@ i(italics) @i(italics)
+    @@ i<italics> @i<italics>
+    @@ i{italics} @i{italics}
+    @@ i `italics' @i `italics'
+    @@ i :italics; @i :italics;
+
+These last two require an extra space after the command name since
+the backquote and colon are not postscript delimiters.
+Incidentally, since the command name is scanned with 'token' and
+executed with 'exec', it can even be a postscript procedure.
+@{/oldfont currentfont def}
+    @@ {/Courier 11 selectfont} text in Courier
+    @{/Courier 11 selectfont} text in Courier
+@{oldfont setfont}
+Now with @b[bold].
 
 @bye
 (stack:)= pstack(---)= currentfile flushfile
