@@ -6,12 +6,13 @@
 % mark k1 v1 .. kN vN  dicttomark  dict(N)
 /dicttomark { counttomark dup dict begin 2 idiv { def } repeat pop currentdict end } def
 
-/-= { 1 index load exch sub store } def
 
 % Composite Index  inc/dec  -
 % (n.b. userdict is a composite object)
 /inc { 2 copy get 1 add put } def
 /dec { 2 copy get 1 sub put } def
+
+/-= { 1 index load exch sub store } def
 
 % Stack type is an array where element 0 contains the index of the top of the stack
 % n  stack  array{n+1}:[0]=0
@@ -40,7 +41,7 @@ dicttomark def
     setbounds pop savebounds
 } def
 
-/nextpage { showpage restorebounds } def
+/nextpage { showpage restorebounds eol } def
 
 % text setting
 /text mark
@@ -48,8 +49,21 @@ dicttomark def
         y Y lt { x Y moveto }
                { nextpage } ifelse }
     /heol { eol }
-    /blank { eol }
-    /settext { show }
+    /blank { }
+    /settext {
+        fontfam bold 2 mul italic add get setfont
+        show
+    }
+
+    /fontfam [ %  -roman- -italic- -bold- -bold-italic- 
+        /Palatino-Roman findfont 10 scalefont
+        /Palatino-Italic findfont 10 scalefont
+        /Palatino-Bold findfont 10 scalefont
+        /Palatino-Italic findfont 12 scalefont
+    ]
+    /italic 0
+    /bold 0
+
 dicttomark def
 
 % processing
@@ -79,13 +93,14 @@ dicttomark def
     0 1 getinterval
 } def
 
-% ([)  rhs  (])
-% (q)  rhs  (q)
-/rhs { pairs exch 2 copy known { get }{ exch pop } ifelse } def
 % delimiter pairs
 /pairs mark
     ([)(]) (<)(>) (\()(\)) ({)(}) (`)(') (:)(;)
 dicttomark def
+
+% ([)  rhs  (])
+% (q)  rhs  (q)
+/rhs { pairs exch 2 copy known { get }{ exch pop } ifelse } def
 
 /nest 10 stack def
 % {on_a} (])  deferal  {[{on_a} (])] nest exch spush}
@@ -124,11 +139,34 @@ dicttomark def
 % the "at" sign indicates the start of an embedded command
 /sigil <40> def
 
+/command {
+    {settext} {execute} {settext} 4 3 roll
+    sigil find
+} def
+
+% scan string for embedded @commands
+% and call settext for other text.
 /process { % str  process  -
-    %(process:)= pstack()=
+    (process:)= pstack()=
     dup length 0 eq { pop blank }{
-        {settext} {execute} {settext} 4 3 roll
-        sigil find
+        nest 0 get 0 gt {
+            {command} {process} nest top aload pop % str {!} {B} {A} (X)
+            exch [ exch   % str {!} {B} (X) [ {A}
+                nest exch /spop cvx exch /pop cvx exch %/process cvx exch
+                    /exec cvx 
+            ] cvx exch  % str {!} {B} {A}' (X)
+            5 4 roll exch % {!} {B} {A} str (X)
+            find
+        %    {process}{process} nest top aload pop  % {!} {B} {A} (X)
+        %    exch [
+        %        %{nest spop pop process {defered "on_a"} exec}
+        %        exch nest exch /spop cvx exch /pop cvx exch /process cvx exch /exec cvx
+        %        ] cvx exch % {!} {B} {A}' (X)
+        %    5 4 roll exch % {!} {B} {A} str (X)
+        %    find
+        }{
+            command
+        } ifelse
     } ifelse
 } def
 
@@ -142,9 +180,10 @@ dicttomark def
     dup type /filetype ne { NOT_A_FILE } if
     /src exch def
 
-    pstack()=
+    %pstack()=
     {
-        src buf readline {process}{process exit}ifelse
+        src buf readline {process}{%process
+            exit}ifelse
         heol
         exitflag { exit } if
     } loop
@@ -152,7 +191,8 @@ dicttomark def
     showpage
 } def
 
-sigil { sigil settext } def % @@
+% @@ define the at-sign as a command to print itself
+sigil { sigil settext } def
 
 
 %alterations
@@ -173,28 +213,41 @@ sigil { sigil settext } def % @@
     %create long-form
 } def
 
-/i mark
-    /ini {currentfont /Palatino-Italic 10 selectfont}
-    /fin {setfont}
+/r mark
+    /ini { bold 2 mul italic add /bold 0 store /italic 0 store }
+    /fin { dup 2 mod /italic exch store 2 idiv /bold exch store }
 dicttomark newalter
 
-%/name /fontname fontsize  fontproc  - 
-/fontproc {
-    /currentfont cvx 3 1 roll /selectfont cvx 4 array astore cvx
-    mark exch /ini exch /fin {setfont} dicttomark newalter
-} def
+/i mark
+    /ini { italic /italic 1 store }
+    /fin { /italic exch store }
+dicttomark newalter
 
-/b /Palatino-Bold 10 fontproc
+/b mark
+    /ini { bold /bold 1 store }
+    /fin { /bold exch store }
+dicttomark newalter
+
+%/i mark /ini {currentfont /Palatino-Italic 10 selectfont} /fin {setfont} dicttomark newalter
+%/name /fontname fontsize  fontproc  - 
+%/fontproc {
+    %/currentfont cvx 3 1 roll /selectfont cvx 4 array astore cvx
+    %mark exch /ini exch /fin {setfont} dicttomark newalter
+%} def
+%/r /Palatino-Roman  10 fontproc
+%/b /Palatino-Bold   10 fontproc
+%/i /Palatino-Italic 10 fontproc
 
 /default {
     text begin
     72 setmargin
-    /Palatino-Roman 10 selectfont
+    %/Palatino-Roman 10 selectfont
+    alt /r get /ini get exec pop
     /lead 12 def
-    eol
+    %eol
 } def
 
-/bye {pstack()= /exitflag true def} def
+/bye {/exitflag true def} def
 
 %/i load == quit
 %stepon
@@ -222,15 +275,28 @@ with various sets of delimiters.
 
 These last two require an extra space after the command name since
 the backquote and colon are not postscript delimiters.
+
 Incidentally, since the command name is scanned with 'token' and
 executed with 'exec', it can even be a postscript procedure.
 @{/oldfont currentfont def}
-    @@ {/Courier 11 selectfont} text in Courier
-    @{/Courier 11 selectfont} text in Courier
+    @@ {/Courier 11 selectfont}text in Courier
+    @{/Courier 11 selectfont}text in Courier
 @{oldfont setfont}
+Only "short-form" commands take a delimited argument. 
+The @@ {arbitrary ps code} commands are not "short-form", 
+and do not take an argument but apply directly to the current state.
+
 Now with @b[bold].
 
+I finally remembered what "deferal" was all about. So let's 
+see if it works. It should allow bracketed commands to span
+multiple lines. Like so @i[ This sentence should be all italics
+despite spanning lines, in a line-oriented scanning routine. ]
+And back to normal.
+
+Unfortunately, this breaks the Courier hack above.
+
 @bye
-(stack:)= pstack(---)= currentfile flushfile
+%(stack:)= pstack(---)= currentfile flushfile
 
 
