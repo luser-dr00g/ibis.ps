@@ -59,7 +59,7 @@ dicttomark def
         /Palatino-Roman findfont 10 scalefont
         /Palatino-Italic findfont 10 scalefont
         /Palatino-Bold findfont 10 scalefont
-        /Palatino-Italic findfont 12 scalefont
+        /Palatino-BoldItalic findfont 10 scalefont
     ]
     /italic 0
     /bold 0
@@ -129,7 +129,7 @@ dicttomark def
     dup /ini get exec % s d ?
     exch /fin get % s ? {}
     [ 3 1 roll /exec cvx ] cvx exch % undo s
-    (short)= pstack()=
+    %(short)= pstack()=
     delim
 } def
 
@@ -147,7 +147,7 @@ dicttomark def
 % scan string for embedded @commands
 % and call settext for other text.
 /process { % str  process  -
-    (process:)= pstack()=
+    %(process:)= pstack()=
     dup length 0 eq { pop blank }{
         nest 0 get 0 gt {
             {command} {process} nest top aload pop % str {!} {B} {A} (X)
