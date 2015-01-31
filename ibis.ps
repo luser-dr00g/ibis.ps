@@ -50,11 +50,16 @@ dicttomark def
                { nextpage } ifelse }
     /heol { eol }
     /blank { }
+    /fontchange true
     /settext {
-        fontfam bold 2 mul italic add get setfont
+        fontchange {
+            fontfam bold 2 mul italic add get setfont
+            /fontchange false store
+        } if
         show
     }
 
+    /lead 12
     /fontfam [ %  -roman- -italic- -bold- -bold-italic- 
         /Palatino-Roman findfont 10 scalefont
         /Palatino-Italic findfont 10 scalefont
@@ -213,19 +218,21 @@ sigil { sigil settext } def
     %create long-form
 } def
 
+/updatefont { /fontchange true store } def
+
 /r mark
-    /ini { bold 2 mul italic add /bold 0 store /italic 0 store }
-    /fin { dup 2 mod /italic exch store 2 idiv /bold exch store }
+    /ini { bold 2 mul italic add /bold 0 store /italic 0 store updatefont }
+    /fin { dup 2 mod /italic exch store 2 idiv /bold exch store updatefont }
 dicttomark newalter
 
 /i mark
-    /ini { italic /italic 1 store }
-    /fin { /italic exch store }
+    /ini { italic /italic 1 store updatefont }
+    /fin { /italic exch store updatefont }
 dicttomark newalter
 
 /b mark
-    /ini { bold /bold 1 store }
-    /fin { /bold exch store }
+    /ini { bold /bold 1 store updatefont }
+    /fin { /bold exch store updatefont }
 dicttomark newalter
 
 %/i mark /ini {currentfont /Palatino-Italic 10 selectfont} /fin {setfont} dicttomark newalter
@@ -242,8 +249,8 @@ dicttomark newalter
     text begin
     72 setmargin
     %/Palatino-Roman 10 selectfont
-    alt /r get /ini get exec pop
-    /lead 12 def
+    %alt /r get /ini get exec pop
+    %/lead 12 def
     %eol
 } def
 
@@ -294,7 +301,6 @@ multiple lines. Like so @i[ This sentence should be all italics
 despite spanning lines, in a line-oriented scanning routine. ]
 And back to normal.
 
-Unfortunately, this breaks the Courier hack above.
 
 @bye
 %(stack:)= pstack(---)= currentfile flushfile
