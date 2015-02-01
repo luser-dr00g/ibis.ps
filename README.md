@@ -9,4 +9,4 @@ The wikipedia page mentions some curious history around scribe. Apparently, it w
 And the rest is history.
 
 Scribe was use to produce the first edition PostScript Language Reference Manual.
-
+http://partners.adobe.com/public/developer/en/ps/sdk/5042.Opt_Case_Study.pdf
