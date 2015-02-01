@@ -343,12 +343,12 @@ known internally as the "sigil".
 The simple command @@ i for italics, can use the short form 
 with various sets of delimiters.
 
-    @@ i[italics] @i[italics]
-    @@ i(italics) @i(italics)
-    @@ i<italics> @i<italics>
-    @@ i{italics} @i{italics}
-    @@ i `italics' @i `italics'
-    @@ i :italics; @i :italics;
+    @@ i[italics] produces @{/tab currentpoint pop def}@i[italics]
+    @@ i(italics) @{tab currentpoint exch pop moveto}@i(italics)
+    @@ i<italics> @{tab currentpoint exch pop moveto}@i<italics>
+    @@ i{italics} @{tab currentpoint exch pop moveto}@i{italics}
+    @@ i `italics' @{tab currentpoint exch pop moveto}@i `italics'
+    @@ i :italics; @{tab currentpoint exch pop moveto}@i :italics;
 
 These last two require an extra space after the command name since
 the backquote and colon are not postscript delimiters.
