@@ -138,6 +138,30 @@ dicttomark def
     delim
 } def
 
+/pending 10 stack def
+% ([name]rem)  long  (rem)
+/long {
+    first rhs          % (name]rem) (])
+    {Err:long-form-arg-cannot-span-lines}
+    {}
+    {
+        dup alt exch get /ini get exec
+        2 array astore pending exch spush
+    }
+    5 3 roll  % {} {} {} (name]rem) (])
+    find
+} def
+
+% ([name]rem)  long-end  (rem)
+/long-end {
+    first rhs   % (name]rem) (])
+    {Err:long-form-arg-cannot-span-lines}
+    {}
+    {pstack()= pop} %TODO search pending stack and remove match
+    5 3 roll  % {} {} {} (name]rem) (])
+    find
+} def
+
 % str  execute  -
 /execute { token { exec process }{ BAD_COMMAND } ifelse } def
 
@@ -235,15 +259,13 @@ dicttomark newalter
     /fin { /bold exch store updatefont }
 dicttomark newalter
 
-%/i mark /ini {currentfont /Palatino-Italic 10 selectfont} /fin {setfont} dicttomark newalter
-%/name /fontname fontsize  fontproc  - 
-%/fontproc {
-    %/currentfont cvx 3 1 roll /selectfont cvx 4 array astore cvx
-    %mark exch /ini exch /fin {setfont} dicttomark newalter
-%} def
-%/r /Palatino-Roman  10 fontproc
-%/b /Palatino-Bold   10 fontproc
-%/i /Palatino-Italic 10 fontproc
+/Begin {
+    long
+} def
+
+/End {
+    long-end
+} def
 
 /default {
     text begin
@@ -255,6 +277,9 @@ dicttomark newalter
 } def
 
 /bye {/exitflag true def} def
+
+%print manual only if /manual is defined (eg. `gs -dmanual ibis.ps`)
+%/manual where { pop }{ currentfile flushfile } ifelse 
 
 %/i load == quit
 %stepon
@@ -292,6 +317,9 @@ executed with 'exec', it can even be a postscript procedure.
 Only "short-form" commands take a delimited argument. 
 The @@ {arbitrary ps code} commands are not "short-form", 
 and do not take an argument but apply directly to the current state.
+But they do receive the remaining portion of the line as a string,
+so a custom command may consume data from the string and yield the
+remainder to be printed (it should leave a string on the stack).
 
 Now with @b[bold].
 
@@ -300,6 +328,11 @@ see if it works. It should allow bracketed commands to span
 multiple lines. Like so @i[ This sentence should be all italics
 despite spanning lines, in a line-oriented scanning routine. ]
 And back to normal.
+
+Long-form uses the same command names, but it is now the @i{argument}
+to the @@ Begin{} or @@ End{} command.
+@Begin{i}@@ Begin{i}Start italics.
+@End{i}@@ End{i}End italics.
 
 
 @bye
