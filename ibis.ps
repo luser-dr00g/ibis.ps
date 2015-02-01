@@ -164,10 +164,10 @@ dicttomark def
     (checking pending stack)=
     {
         pending 0 get -1 1 {  % (name) i
-            pstack()=
+            %pstack()=
             pending 1 index get  % (name) i []
             0 get 2 index
-            pstack()=
+            %pstack()=
             eq {  % (name) i
                 stop
             } if
@@ -185,13 +185,13 @@ dicttomark def
     {Err:long-form-arg-cannot-span-lines}
     {}
     {
-        pstack()=
+        %pstack()=
         dup length string copy
         dup alt exch get /ini get exec
         2 array astore pending exch
-        pstack()=
+        %pstack()=
         spush
-        pending ==
+        %pending ==
     }
     5 3 roll  % {} {} {} (name]rem) (])
     find
@@ -376,8 +376,8 @@ And back to normal.
 
 Long-form uses the same command names, but it is now the @i{argument}
 to the @@ Begin{} or @@ End{} command.
-@Begin{i}@@ Begin{i}Start italics.
-@End{i}@@ End{i}End italics. 
+@@ Begin{i}@Begin{i}Start italics.
+@@ End{i}@End{i}End italics. 
 
 
 @bye
