@@ -20,9 +20,29 @@
 /top { dup 0 get get } def % S  top  a
 /spop { dup top exch 0 dec } def % S  spop  a  (S{n}->S'(n-1})
 /spush { % S a  spush  -  (S{n}->S'{n+1})
+    dup type /stringtype eq { dup length string copy } if
     1 index 0 inc
     1 index 0 get exch put
 } def
+/sdrop { % S i  sdrop  -  (S{i}->removed)
+    1 index 0 get      % S i c
+    1 index sub 1 sub  % S i c-i-1
+    dup 0 gt {
+        { % S i
+            1 add         % S i=i+1
+            2 copy 2 copy % S i S i S i
+            1 add get put % S' i
+        } repeat % S' i
+    }{
+        pop
+    } ifelse
+    pop
+    0 dec    % S'
+} def
+% a b c d e f 2 sdrop
+% a b   d e f  6-2=4 -1=3
+% a b d e f
+%/t { 6 a b c d e f } cvlit def t 2 sdrop t ==
 
 % output device
 /dev mark
@@ -139,14 +159,39 @@ dicttomark def
 } def
 
 /pending 10 stack def
+% (name)  checkpending  -
+/checkpending {
+    (checking pending stack)=
+    {
+        pending 0 get -1 1 {  % (name) i
+            pstack()=
+            pending 1 index get  % (name) i []
+            0 get 2 index
+            pstack()=
+            eq {  % (name) i
+                stop
+            } if
+            pop
+        } for
+    } stopped {  % (name) i
+        pending 1 index get 1 get  % (name) i fin-arg
+        3 2 roll alt exch get /fin get exec  % i
+        pending exch sdrop
+    }{ Err:symbol-not-in-pending-stack } ifelse
+} def
 % ([name]rem)  long  (rem)
 /long {
     first rhs          % (name]rem) (])
     {Err:long-form-arg-cannot-span-lines}
     {}
     {
+        pstack()=
+        dup length string copy
         dup alt exch get /ini get exec
-        2 array astore pending exch spush
+        2 array astore pending exch
+        pstack()=
+        spush
+        pending ==
     }
     5 3 roll  % {} {} {} (name]rem) (])
     find
@@ -157,7 +202,7 @@ dicttomark def
     first rhs   % (name]rem) (])
     {Err:long-form-arg-cannot-span-lines}
     {}
-    {pstack()= pop} %TODO search pending stack and remove match
+    {checkpending} %search pending stack and remove match
     5 3 roll  % {} {} {} (name]rem) (])
     find
 } def
@@ -332,7 +377,7 @@ And back to normal.
 Long-form uses the same command names, but it is now the @i{argument}
 to the @@ Begin{} or @@ End{} command.
 @Begin{i}@@ Begin{i}Start italics.
-@End{i}@@ End{i}End italics.
+@End{i}@@ End{i}End italics. 
 
 
 @bye
