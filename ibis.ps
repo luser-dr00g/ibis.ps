@@ -73,21 +73,29 @@ dicttomark def
     /fontchange true
     /settext {
         fontchange {
-            fontfam bold 2 mul italic add get setfont
+            fontfam tty 4 mul bold 2 mul add italic add get setfont
             /fontchange false store
         } if
         show
     }
 
+    /fontsize 10
     /lead 12
-    /fontfam [ %  -roman- -italic- -bold- -bold-italic- 
-        /Palatino-Roman findfont 10 scalefont
-        /Palatino-Italic findfont 10 scalefont
-        /Palatino-Bold findfont 10 scalefont
-        /Palatino-BoldItalic findfont 10 scalefont
-    ]
+    /setfontfam {
+    text /fontfam [ %  -roman- -italic- -bold- -bold-italic- 
+        /Palatino-Roman findfont fontsize scalefont
+        /Palatino-Italic findfont fontsize scalefont
+        /Palatino-Bold findfont fontsize scalefont
+        /Palatino-BoldItalic findfont fontsize scalefont
+        /Courier findfont fontsize scalefont
+        /Courier-Oblique findfont fontsize scalefont
+        /Courier-Bold findfont fontsize scalefont
+        /Courier-BoldOblique findfont fontsize scalefont
+    ] put
+    }
     /italic 0
     /bold 0
+    /tty 0
 
 dicttomark def
 
@@ -138,7 +146,7 @@ dicttomark def
 
 % {on_a} ([a]b)  delim  (b)
 /delim {
-    exch /settext cvx exch /exec cvx 3 array astore cvx exch
+    exch /process cvx exch /exec cvx 3 array astore cvx exch
     first rhs       % on_a (a]b) (])
     3 copy exch pop % on_a (a]b) (]) on_a (]) 
     deferal         % on_a (a]b) (]) not    %not-clause
@@ -150,18 +158,18 @@ dicttomark def
 
 % ([arg]rem) /name  short  (rem)
 /short {
+    (short)= pstack()=
     alt exch get % s d
     dup /ini get exec % s d ?
     exch /fin get % s ? {}
     [ 3 1 roll /exec cvx ] cvx exch % undo s
-    %(short)= pstack()=
     delim
 } def
 
 /pending 10 stack def
 % (name)  checkpending  -
 /checkpending {
-    (checking pending stack)=
+    %(checking pending stack)=
     {
         pending 0 get -1 1 {  % (name) i
             %pstack()=
@@ -179,6 +187,7 @@ dicttomark def
         pending exch sdrop
     }{ Err:symbol-not-in-pending-stack } ifelse
 } def
+
 % ([name]rem)  long  (rem)
 /long {
     first rhs          % (name]rem) (])
@@ -214,7 +223,7 @@ dicttomark def
 /sigil <40> def
 
 /command {
-    {settext} {execute} {settext} 4 3 roll
+    {settext} {execute} {process} 4 3 roll
     sigil find
 } def
 
@@ -304,6 +313,11 @@ dicttomark newalter
     /fin { /bold exch store updatefont }
 dicttomark newalter
 
+/t mark
+    /ini { tty /tty 1 store updatefont }
+    /fin { /tty exch store updatefont }
+dicttomark newalter
+
 /Begin {
     long
 } def
@@ -314,6 +328,7 @@ dicttomark newalter
 
 /default {
     text begin
+    setfontfam
     72 setmargin
     %/Palatino-Roman 10 selectfont
     %alt /r get /ini get exec pop
@@ -378,6 +393,8 @@ Long-form uses the same command names, but it is now the @i{argument}
 to the @@ Begin{} or @@ End{} command.
 @@ Begin{i}@Begin{i}Start italics.
 @@ End{i}@End{i}End italics. 
+
+@t[ typewriter-text @i<oblique> ]
 
 
 @bye
