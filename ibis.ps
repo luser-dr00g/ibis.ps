@@ -1,8 +1,14 @@
 %!
 %(debug.ps/db5.ps)run %currentfile cvx debug
 
+%optionally dump text to stdout while writing
 %/show { dup print (\n) print show } bind def
 
+% essentially the same as level-2 >> operator
+% but it is used in an attempt at level-1 compatibility
+% but primarily for historical reasons:
+% in 2011, xpost did not have >>
+%
 % mark k1 v1 .. kN vN  dicttomark  dict(N)
 /dicttomark { counttomark dup dict begin 2 idiv { def } repeat pop currentdict end } def
 
@@ -15,6 +21,7 @@
 /-= { 1 index load exch sub store } def
 
 % Stack type is an array where element 0 contains the index of the top of the stack
+%
 % n  stack  array{n+1}:[0]=0
 /stack { 1 add array dup 0 0 put } def
 /top { dup 0 get get } def % S  top  a
@@ -25,13 +32,15 @@
     1 index 0 get exch put
 } def
 /sdrop { % S i  sdrop  -  (S{i}->removed)
+    %(sdrop:)=
     1 index 0 get      % S i c
-    1 index sub 1 sub  % S i c-i-1
+    1 index sub %1 sub  % S i c-i-1
+    %pstack()=
     dup 0 gt {
         { % S i
-            1 add         % S i=i+1
             2 copy 2 copy % S i S i S i
             1 add get put % S' i
+            1 add         % S i=i+1
         } repeat % S' i
     }{
         pop
@@ -40,8 +49,8 @@
     0 dec    % S'
 } def
 % a b c d e f 2 sdrop
-% a b   d e f  6-2=4 -1=3
-% a b d e f
+% a   c d e f  6-2=4 -1=3
+% a c d e f
 %/t { 6 a b c d e f } cvlit def t 2 sdrop t ==
 
 % output device
@@ -100,7 +109,7 @@ dicttomark def
 dicttomark def
 
 % processing
-% find takes 3 procedures a string and search-string
+% find takes 3 procedures, a string and search-string
 % and executes on_a and on_b upon the returned substrings if found
 % or the not procedure if not found
 /find {               % {not} {on_b} {on_a} (aXb) (X)  find  -
@@ -133,6 +142,7 @@ dicttomark def
 
 % ([)  rhs  (])
 % (q)  rhs  (q)
+% (")  rhs  (")
 /rhs { pairs exch 2 copy known { get }{ exch pop } ifelse } def
 
 /nest 10 stack def
@@ -158,7 +168,7 @@ dicttomark def
 
 % ([arg]rem) /name  short  (rem)
 /short {
-    (short)= pstack()=
+    %(short)= pstack()=
     alt exch get % s d
     dup /ini get exec % s d ?
     exch /fin get % s ? {}
@@ -169,7 +179,7 @@ dicttomark def
 /pending 10 stack def
 % (name)  checkpending  -
 /checkpending {
-    %(checking pending stack)=
+    %(checking pending stack)= pending ==
     {
         pending 0 get -1 1 {  % (name) i
             %pstack()=
@@ -177,6 +187,7 @@ dicttomark def
             0 get 2 index
             %pstack()=
             eq {  % (name) i
+                %pstack()=
                 stop
             } if
             pop
@@ -293,7 +304,6 @@ sigil { sigil settext } def
     2 copy alt 3 1 roll put
     %create short-form procedure
     pop [ 1 index /short cvx ] cvx def
-    %create long-form
 } def
 
 /updatefont { /fontchange true store } def
@@ -396,6 +406,13 @@ to the @@ Begin{} or @@ End{} command.
 
 @t[ typewriter-text @i<oblique> ]
 
+Haha! I just read in the scribe paper that @@ Begin() and @@ End()
+sections should always be properly nested.
+So I just wasted some effort getting this to work:
+    @@ Begin{i} italic @@ Begin{b} bold-italic @@ End{i} bold @@ End{b} normal
+    @Begin{i} italic @Begin{b} bold-italic @End{i} bold @End{b} normal
+But it's probably best to nest things properly anyway.
+This should be considered "backup" behavior.
 
 @bye
 %(stack:)= pstack(---)= currentfile flushfile
