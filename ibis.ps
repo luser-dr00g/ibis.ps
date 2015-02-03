@@ -72,20 +72,49 @@ dicttomark def
 
 /nextpage { showpage restorebounds eol } def
 
+/currentline 500 stack def
+
 % text setting
 /text mark
     /eol { /Y lead -=
         y Y lt { x Y moveto }
                { nextpage } ifelse }
-    /heol { eol }
-    /blank { }
+    /heol { }
+    /blank { setline eol }
     /fontchange true
+
+    /setline {
+        x Y
+        (setline:)= pstack()=
+        moveto
+        currentline first 0 get 0 exch getinterval
+        {
+            %pstack()=
+            aload pop setfont show
+        } forall
+        currentline 0 0 put
+        eol
+    }
+    /setword {
+        dup length 1 add string dup 3 1 roll copy pop
+        dup dup length 1 sub ( ) putinterval
+        currentpoint pop =
+        (setword:)= pstack()=
+        dup stringwidth pop dup currentpoint pop add X gt {
+            setline
+        } if
+        0 rmoveto
+        currentfont 2 array astore currentline exch spush
+        %currentline ==
+        %flush(%lineedit)(r)file pop
+    }
     /settext {
         fontchange {
             fontfam tty 4 mul bold 2 mul add italic add get setfont
             /fontchange false store
         } if
-        show
+        %show
+        ( ) { search exch setword not { exit } if } loop
     }
 
     /fontsize 10
@@ -242,7 +271,10 @@ dicttomark def
 % and call settext for other text.
 /process { % str  process  -
     %(process:)= pstack()=
-    dup length 0 eq { pop blank }{
+    dup length 0 eq {
+        pop
+        %blank
+    }{
         nest 0 get 0 gt {
             {command} {process} nest top aload pop % str {!} {B} {A} (X)
             exch [ exch   % str {!} {B} (X) [ {A}
@@ -276,8 +308,13 @@ dicttomark def
 
     %pstack()=
     {
-        src buf readline {process}{%process
-            exit}ifelse
+        src buf readline {
+            dup length 0 eq { blank } if
+            process
+        }{
+            %process
+            exit
+        }ifelse
         heol
         exitflag { exit } if
     } loop
@@ -369,10 +406,15 @@ The simple command @@ i for italics, can use the short form
 with various sets of delimiters.
 
     @@ i[italics] produces @{/tab currentpoint pop def}@i[italics]
+
     @@ i(italics) @{tab currentpoint exch pop moveto}@i(italics)
+
     @@ i<italics> @{tab currentpoint exch pop moveto}@i<italics>
+
     @@ i{italics} @{tab currentpoint exch pop moveto}@i{italics}
+
     @@ i `italics' @{tab currentpoint exch pop moveto}@i `italics'
+
     @@ i :italics; @{tab currentpoint exch pop moveto}@i :italics;
 
 These last two require an extra space after the command name since
@@ -381,8 +423,11 @@ the backquote and colon are not postscript delimiters.
 Incidentally, since the command name is scanned with 'token' and
 executed with 'exec', it can even be a postscript procedure.
 @{/oldfont currentfont def}
+
     @@ {/Courier 11 selectfont}text in Courier
+
     @{/Courier 11 selectfont}text in Courier
+
 @{oldfont setfont}
 Only "short-form" commands take a delimited argument. 
 The @@ {arbitrary ps code} commands are not "short-form", 
@@ -401,7 +446,9 @@ And back to normal.
 
 Long-form uses the same command names, but it is now the @i{argument}
 to the @@ Begin{} or @@ End{} command.
+
 @@ Begin{i}@Begin{i}Start italics.
+
 @@ End{i}@End{i}End italics. 
 
 @t[ typewriter-text @i<oblique> ]
