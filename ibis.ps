@@ -53,7 +53,9 @@
 % a c d e f
 %/t { 6 a b c d e f } cvlit def t 2 sdrop t ==
 
-% output device
+
+% Output device
+
 /dev mark
     /size [ clippath pathbbox ]
     /bounds null
@@ -72,20 +74,27 @@ dicttomark def
 
 /nextpage { showpage restorebounds eol } def
 
-/currentline 500 stack def
 
-% text setting
+
+% Text setting
+
+
 /text mark
-    /eol { /Y lead -=
+    /eol {
+        setline
+        /Y lead -=
         y Y lt { x Y moveto }
-               { nextpage } ifelse }
-    /heol { }
+               { nextpage } ifelse
+    }
+    /heol { ( ) setword }
     /blank { setline eol }
     /fontchange true
 
+    /currentline 100 stack
+
     /setline {
         x Y
-        (setline:)= pstack()=
+        %(setline:)= pstack()=
         moveto
         currentline first 0 get 0 exch getinterval
         {
@@ -93,20 +102,28 @@ dicttomark def
             aload pop setfont show
         } forall
         currentline 0 0 put
-        eol
+        %eol
     }
     /setword {
-        dup length 1 add string dup 3 1 roll copy pop
-        dup dup length 1 sub ( ) putinterval
-        currentpoint pop =
-        (setword:)= pstack()=
-        dup stringwidth pop dup currentpoint pop add X gt {
-            setline
-        } if
-        0 rmoveto
-        currentfont 2 array astore currentline exch spush
-        %currentline ==
-        %flush(%lineedit)(r)file pop
+        dup ( ) eq
+        currentline 0 get 0 eq and
+        1 index () eq or
+        {
+            (suppressing initial whitespace)=
+            pop
+        }{
+            dup length string copy
+            %dup length 1 add string dup 3 1 roll copy pop  % copy and append space
+            %dup dup length 1 sub ( ) putinterval
+            currentpoint pop =
+            %(setword:)= pstack()=
+            %currentline == flushpage flush(%lineedit)(r)file pop 
+            dup stringwidth pop dup currentpoint pop add X gt {
+                eol %setline
+            } if
+            0 rmoveto
+            currentfont 2 array astore currentline exch spush
+        } ifelse
     }
     /settext {
         fontchange {
@@ -114,7 +131,15 @@ dicttomark def
             /fontchange false store
         } if
         %show
-        ( ) { search exch setword not { exit } if } loop
+        ( ) {
+            %search exch setword not { exit } if
+            search {
+                setword ( ) setword
+            }{
+                setword
+                exit
+            } ifelse
+        } loop
     }
 
     /fontsize 10
@@ -137,7 +162,8 @@ dicttomark def
 
 dicttomark def
 
-% processing
+% Manuscript processing
+
 % find takes 3 procedures, a string and search-string
 % and executes on_a and on_b upon the returned substrings if found
 % or the not procedure if not found
@@ -311,6 +337,7 @@ dicttomark def
         src buf readline {
             dup length 0 eq { blank } if
             process
+            heol
         }{
             %process
             exit
@@ -319,6 +346,7 @@ dicttomark def
         exitflag { exit } if
     } loop
 
+    eol %setline
     showpage
 } def
 
@@ -448,7 +476,6 @@ Long-form uses the same command names, but it is now the @i{argument}
 to the @@ Begin{} or @@ End{} command.
 
 @@ Begin{i}@Begin{i}Start italics.
-
 @@ End{i}@End{i}End italics. 
 
 @t[ typewriter-text @i<oblique> ]
@@ -456,8 +483,10 @@ to the @@ Begin{} or @@ End{} command.
 Haha! I just read in the scribe paper that @@ Begin() and @@ End()
 sections should always be properly nested.
 So I just wasted some effort getting this to work:
+
     @@ Begin{i} italic @@ Begin{b} bold-italic @@ End{i} bold @@ End{b} normal
     @Begin{i} italic @Begin{b} bold-italic @End{i} bold @End{b} normal
+
 But it's probably best to nest things properly anyway.
 This should be considered "backup" behavior.
 
