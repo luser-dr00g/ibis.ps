@@ -109,13 +109,13 @@ dicttomark def
         currentline 0 get 0 eq and
         1 index () eq or
         {
-            (suppressing initial whitespace)=
+            %(suppressing initial whitespace)=
             pop
         }{
             dup length string copy
             %dup length 1 add string dup 3 1 roll copy pop  % copy and append space
             %dup dup length 1 sub ( ) putinterval
-            currentpoint pop =
+            %currentpoint pop =
             %(setword:)= pstack()=
             %currentline == flushpage flush(%lineedit)(r)file pop 
             dup stringwidth pop dup currentpoint pop add X gt {
