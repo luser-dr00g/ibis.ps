@@ -13,3 +13,6 @@ And the rest is history.
 
 Scribe was used to produce the first edition PostScript Language Reference Manual.
 http://partners.adobe.com/public/developer/en/ps/sdk/5042.Opt_Case_Study.pdf
+
+The program implements a markup language and then presents a manual in that markup.
+
