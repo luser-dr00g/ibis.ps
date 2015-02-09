@@ -14,15 +14,18 @@
 
 
 % Composite Index  inc/dec  -
-% (n.b. userdict is a composite object)
+% (n.b. userdict is a composite object (a dict), as are arrays and strings)
 /inc { 2 copy get 1 add put } def
 /dec { 2 copy get 1 sub put } def
 
-% /numeric-variable diminuend  -=  -
-/-= { 1 index load exch sub store } def
+% /numeric-variable addend  +=  -
 /+= { 1 index load add store } def
+/-= { neg += } def
+/*= { 1 index load mul store } def
 
-% Stack type is an array where element 0 contains the index of the top of the stack
+
+% Stack type is an array where element 0 contains the index of the top of the stack.
+% An overflow of the stack will trigger a rangecheck error in `put`.
 %
 % n  stack  array{n+1}:[0]=0
 /stack { 1 add array dup 0 0 put } def
@@ -50,7 +53,7 @@
     pop
     0 dec    % S'
 } def
-% 1 2 3 4 5 6
+% 1 2 3 4 5 6  < array index
 % -----------
 % a b c d e f 2 sdrop
 % a   c d e f  6-2=4 -1=3
@@ -58,7 +61,8 @@
 %/t { 6 a b c d e f } cvlit def t 2 sdrop t ==
 
 
-% Output device
+% Output device is described only by its bounding box.
+% As text is set on the page, the upper bound decreases so the box remains invariant.
 %
 /dev mark
     /size [ clippath pathbbox ]
@@ -86,6 +90,7 @@ dicttomark def
     /eol {
         updatelead
         /Y lead -=
+        /lead leadchange /leadchange lead store store
         setline
         y Y lt { x Y moveto }
                { nextpage } ifelse
@@ -98,6 +103,7 @@ dicttomark def
     %    [  [ (text) <<font>> lead ]*  ]
     /currentline 100 stack
 
+    % scan currentline and set lead to the max lead from the line
     /updatelead {
         /leadchange lead store
         currentline first 0 get 0 exch getinterval
@@ -105,7 +111,8 @@ dicttomark def
             2 get dup leadchange gt { /leadchange exch store }{ pop } ifelse
         } forall
         %lead leadchange lt { /lead leadchange /leadchange lead store store } if
-        /lead leadchange store
+        %/lead leadchange store
+        /lead leadchange /leadchange lead store store
     }
 
     /setline {
@@ -528,6 +535,12 @@ An interest has developed in changing the font size. Currently,
 this can be hacked with explicit postscript. 
 @{/fontsize 5 += /lead 3 += setfontfam /fontchange true store} Big text.
 @{/fontsize 5 -= /lead 3 -= setfontfam /fontchange true store} back to normal.
+@{/fontsize 2 *= /lead 1.5 *= setfontfam /fontchange true store} Double-size text.
+@{/fontsize .5 *= /lead .75 *= setfontfam /fontchange true store} back to normal.
+Has the lead actually been reset, or am I fooling myself?
+I think I may have written a bug where the lead can only increase.
+This extra text explains the purpose for this extra rambling text.
+Whew. Fixed.
 
 @bye
 %(stack:)= pstack(---)= currentfile flushfile
