@@ -1,8 +1,10 @@
 %!
-%(debug.ps/db5.ps)run %currentfile cvx debug
+%(../debug.ps/db5.ps)run %currentfile cvx debug
+
 
 %optionally dump text to stdout while writing
 %/show { dup print (\n) print show } bind def
+%/ashow { dup print (\n) print ashow } bind def
 
 % essentially the same as level-2 >> operator
 % but it is used in an attempt at level-1 compatibility
@@ -67,7 +69,7 @@
 /dev mark
     /size [ clippath pathbbox ]
     /bounds null
-dicttomark def
+dicttomark def % /dev
 /savebounds { dev /bounds [ x y X Y ] put } def
 /restorebounds { dev /bounds get aload pop setbounds } def
 /setbounds { % x y X Y  setbounds  -
@@ -91,17 +93,69 @@ dicttomark def
         updatelead
         /Y lead -=
         /lead leadchange /leadchange lead store store
+        %text /spacecount dec
+        chopline
+        countspaces
+        /gap X currentpoint pop sub store
         setline
+        %(0)=only
+        /spacecount 0 store
         y Y lt { x Y moveto }
                { nextpage } ifelse
     }
     /heol { ( ) setword }
-    /blank { eol }
+    /blank { [ /eol cvx /justify? justify? /store cvx ] cvx /justify? false store exec }
     /fontchange true
+    /spacecount 0
+    /gap 0
+    /justify? true
 
     % currentline is used as an extendable array of tuples
     %    [  [ (text) <<font>> lead ]*  ]
     /currentline 100 stack
+
+    /countspaces {
+        0
+        currentline first 0 get 0 exch getinterval {
+            0 get ( ) eq { 1 add } if
+        } forall
+        %spacecount =
+        %dup =
+        /spacecount exch store
+    } def
+
+    % trim leading/trailing space
+    /chopline {
+        currentline 0 get 1 ge {
+            {
+                currentline 1 get 0 get dup ( ) eq exch () eq or not
+                {
+                    exit
+                } if
+                %(chopping initial space)=
+                %(-)=only
+                currentline 1 sdrop
+                text /spacecount dec
+                currentline 0 get 1 lt {
+                    exit
+                } if
+            } loop
+        } if
+        currentline 0 get 1 ge {
+            {
+                currentline top 0 get ( ) ne {
+                    exit
+                } if
+                %(chopping trailing space)=
+                %(-)=only
+                currentline spop pop
+                text /spacecount dec
+                currentline 0 get 1 lt {
+                    exit
+                } if
+            } loop
+        } if
+    }
 
     % scan currentline and set lead to the max lead from the line
     /updatelead {
@@ -115,55 +169,101 @@ dicttomark def
         /lead leadchange /leadchange lead store store
     }
 
+    % show the text in currentline using associated font(s).
+    % clear currentline.
     /setline {
         x Y
         %(setline:)= pstack()=
         moveto
 
         currentline first 0 get 0 exch getinterval
+        %dup ==
         {
             %pstack()=
             %aload pop
             dup 0 get exch 1 get
-            setfont show
+            setfont
+            justify? {
+                spacecount 0 eq {
+                    show
+                }{
+                    gap spacecount div 0 32 4 3 roll widthshow
+                } ifelse
+            }{
+                show
+            } ifelse
         } forall
         currentline 0 0 put
         %eol
     }
+
+    /addwordtoline {
+        dup length string copy
+        %dup length 1 add string dup 3 1 roll copy pop  % copy and append space
+        %dup dup length 1 sub ( ) putinterval
+        %currentpoint pop =
+        %(setword:)= pstack()=
+        %currentline == flushpage flush(%lineedit)(r)file pop 
+        dup stringwidth pop dup currentpoint pop add X gt {
+            eol %setline
+        } if
+        0 rmoveto
+        currentfont lead 3 array astore
+        currentline exch spush
+    }
+
+    % do nothing for initial empty or blank strings.
+    % check stringwidth+currentpoint and flush currentline
+    % by calling eol (which calls setline) if too long.
+    % rmoveto by the stringwidth
+    % add word to currentline.
     /setword {
-        dup ( ) eq
-        currentline 0 get 0 eq and
-        1 index () eq or
-        {
-            %(suppressing initial whitespace)=
-            pop
+        dup ( ) eq {
+            currentline 0 get 0 eq {
+                %(-)=only
+                text /spacecount dec
+                pop
+            }{
+                currentline top 0 get ( ) eq {
+                    %(-)=only
+                    text /spacecount dec
+                    pop
+                }{
+                    addwordtoline
+                } ifelse
+            } ifelse
         }{
-            dup length string copy
-            %dup length 1 add string dup 3 1 roll copy pop  % copy and append space
-            %dup dup length 1 sub ( ) putinterval
-            %currentpoint pop =
-            %(setword:)= pstack()=
-            %currentline == flushpage flush(%lineedit)(r)file pop 
-            dup stringwidth pop dup currentpoint pop add X gt {
-                eol %setline
-            } if
-            0 rmoveto
-            currentfont lead 3 array astore
-            currentline exch spush
+            dup () eq {
+                pop
+            }{
+                addwordtoline
+            } ifelse
         } ifelse
     }
+
+    % used like show, this is the call for adding text to the output.
+    % chops text into words and calls setword on each.
     /settext {
         fontchange {
             fontfam tty 4 mul bold 2 mul add italic add get setfont
             /fontchange false store
         } if
         %show
+        ( ){ anchorsearch not { exit } if } loop %strip initial spaces
         ( ) {
             %search exch setword not { exit } if
             search {
-                setword ( ) setword
+                setword 
+                %currentline 0 get 0 gt {
+                    %(+)=only
+                    ( ) setword
+                    text /spacecount inc
+                %} if
             }{
                 setword
+                %(+)=only
+                ( ) setword
+                text /spacecount inc
                 exit
             } ifelse
         } loop
@@ -187,7 +287,7 @@ dicttomark def
     /bold 0
     /tty 0
 
-dicttomark def
+dicttomark def % /text
 
 
 % Manuscript processing
@@ -222,7 +322,7 @@ dicttomark def
 % delimiter pairs
 /pairs mark
     ([)(]) (<)(>) (\()(\)) ({)(}) (`)(') (:)(;)
-dicttomark def
+dicttomark def % /pairs
 
 % ([)  rhs  (])
 % (q)  rhs  (q)
@@ -331,7 +431,7 @@ dicttomark def
 
 % scan argument string for the sigil and execute command after processing prefix
 /command {
-    {settext} {execute} {process} 4 3 roll
+    {settext} {execute} {settext} 4 3 roll
     sigil find
 } def
 
@@ -380,6 +480,7 @@ dicttomark def
     {
         src buf readline {
             dup length 0 eq { blank } if
+            %dup dup length 1 sub get = quit
             process
             heol
         }{
@@ -407,8 +508,8 @@ sigil { sigil settext } def
 % dict should contain 2 procs
 % -  ini  ?
 % ?  fin  -
-% where init returns an object that should be
-% passed to final
+% where ini returns an object that should be
+% passed to fin
 /newalter {
     %install in alt dict
     2 copy alt 3 1 roll put
@@ -419,8 +520,15 @@ sigil { sigil settext } def
 /updatefont { /fontchange true store } def
 
 /r mark
-    /ini { bold 2 mul italic add /bold 0 store /italic 0 store updatefont }
-    /fin { dup 2 mod /italic exch store 2 idiv /bold exch store updatefont }
+    /ini { tty 4 mul bold 2 mul italic add add
+        /bold 0 store
+        /italic 0 store
+        /tty 0 store
+        updatefont }
+    /fin { dup 2 mod /italic exch store
+        2 idiv dup 2 mod /bold exch store
+        2 idiv /tty exch store
+        updatefont }
 dicttomark newalter
 
 /i mark
@@ -442,10 +550,6 @@ dicttomark newalter
     text begin
     setfontfam
     72 setmargin
-    %/Palatino-Roman 10 selectfont
-    %alt /r get /ini get exec pop
-    %/lead 12 def
-    %eol
 } def
 
 /bye {/exitflag true def} def
@@ -533,14 +637,24 @@ This should be considered "backup" behavior.
 
 An interest has developed in changing the font size. Currently,
 this can be hacked with explicit postscript. 
-@{/fontsize 5 += /lead 3 += setfontfam /fontchange true store} Big text.
-@{/fontsize 5 -= /lead 3 -= setfontfam /fontchange true store} back to normal.
-@{/fontsize 2 *= /lead 1.5 *= setfontfam /fontchange true store} Double-size text.
-@{/fontsize .5 *= /lead .75 *= setfontfam /fontchange true store} back to normal.
+@{/fontsize 5 += /lead 3 += setfontfam /fontchange true store}Big text.
+@{/fontsize 5 -= /lead 3 -= setfontfam /fontchange true store}back to normal.
+@{/fontsize 2 *= /lead 1.5 *= setfontfam /fontchange true store}Double-size text.
+@{/fontsize .5 *= /lead .75 *= setfontfam /fontchange true store}back to normal.
 Has the lead actually been reset, or am I fooling myself?
 I think I may have written a bug where the lead can only increase.
 This extra text explains the purpose for this extra rambling text.
 Whew. Fixed.
+
+I just read in the scribe user manual that the same brackets should
+be able to nest. This I have to fix. I had assumed that the variety
+of bracket choices () [] {} <> was for the convenience of the implementation,
+but I was wrong. It is for the convenience of the user, and the
+implementation has a little more work to do. Currently ibis does not
+correctly handle nesting of the same delimiters, and you should use 
+different ones when nesting so it doesn't get confused.
+
+@t[T @b{B @i<I @r `Roman should override all of' italics,> bold,} and typewriter] flags. 
 
 @bye
 %(stack:)= pstack(---)= currentfile flushfile
