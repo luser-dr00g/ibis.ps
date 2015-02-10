@@ -84,7 +84,59 @@ dicttomark def % /dev
 
 /nextpage { showpage restorebounds eol } def
 
+/kpairs 26 dict def
 
+% (ab) n  kaddpair  -
+/kaddpair {
+    1 index 1 get  % (ab) n 98
+    exch [ 3 1 roll >>  % (ab) <<98 n>>
+    exch 0 get  % <<98 n>> 97
+    exch kpairs 3 1 roll put
+} def
+
+% 97 98  kgetpair  n
+/kgetpair {
+    kpairs 3 2 roll 2 copy known { % k2 <<>> k1 
+        get  % k2 <<>>
+        exch 2 copy known { % <<>> k2
+            get
+        }{
+            pop pop 0
+        } ifelse
+    }{
+        pop pop pop 0
+    } ifelse
+} def
+
+(ac) 7 kaddpair
+(al) 3 kaddpair
+(av) -10 kaddpair
+(ce) 5 kaddpair
+(cu) -5 kaddpair
+(de) -5 kaddpair
+(em) 5 kaddpair
+(ec) 7 kaddpair
+(el) 10 kaddpair
+(ex) -10 kaddpair
+(il) -12 kaddpair
+(in) -10 kaddpair
+(li) -3 kaddpair
+(om) -5 kaddpair
+(ou) -10 kaddpair
+(re) 7 kaddpair
+(ri) 5 kaddpair
+(rn) -5 kaddpair
+(rp) 5 kaddpair
+(ti) 10 kaddpair
+(tp) 10 kaddpair
+(ul) -5 kaddpair
+(ut) -10 kaddpair
+(xe) -5 kaddpair
+(Al) -15 kaddpair
+(An) -10 kaddpair
+(Th) -5 kaddpair
+%(a) 0 get (w) 0 get kgetpair =
+%(-----)=
 
 % Text setting
 %
@@ -109,6 +161,7 @@ dicttomark def % /dev
     /spacecount 0
     /gap 0
     /justify? true
+    /kerning? true
 
     % currentline is used as an extendable array of tuples
     %    [  [ (text) <<font>> lead ]*  ]
@@ -183,14 +236,25 @@ dicttomark def % /dev
             %aload pop
             dup 0 get exch 1 get
             setfont
-            justify? {
-                spacecount 0 eq {
-                    show
-                }{
-                    gap spacecount div 0 32 4 3 roll widthshow
-                } ifelse
+            kerning? {
+                {
+                    1 index 32 eq {
+                        pop pop gap spacecount div 0
+                    }{
+                        kgetpair 0
+                    } ifelse
+                    currentfont /FontMatrix get dtransform rmoveto
+                } exch kshow
             }{
-                show
+                justify? {
+                    spacecount 0 eq {
+                        show
+                    }{
+                        gap spacecount div 0 32 4 3 roll widthshow
+                    } ifelse
+                }{
+                    show
+                } ifelse
             } ifelse
         } forall
         currentline 0 0 put
@@ -249,27 +313,30 @@ dicttomark def % /dev
             /fontchange false store
         } if
         %show
-        ( ){ anchorsearch not { exit } if } loop %strip initial spaces
+        /initialspace false store
+        ( ){ anchorsearch {/initialspace true store}{ exit } ifelse } loop %strip initial spaces
+        initialspace { ( ) setword } if
         ( ) {
             %search exch setword not { exit } if
             search {
                 setword 
+                { anchorsearch not {exit} if } loop
                 %currentline 0 get 0 gt {
                     %(+)=only
-                    ( ) setword
+                    ( ) dup setword
                     text /spacecount inc
                 %} if
             }{
                 setword
                 %(+)=only
-                ( ) setword
-                text /spacecount inc
+                %( ) setword
+                %text /spacecount inc
                 exit
             } ifelse
         } loop
     }
 
-    /fontsize 10
+    /fontsize 11
     /lead 12
     /setfontfam {
     text /fontfam [ %  -roman- -italic- -bold- -bold-italic- 
@@ -632,7 +699,7 @@ So I just wasted some effort getting this to work:
     @@ Begin{i} italic @@ Begin{b} bold-italic @@ End{i} bold @@ End{b} normal
     @Begin{i} italic @Begin{b} bold-italic @End{i} bold @End{b} normal
 
-But it's probably best to nest things properly anyway.
+@{alt/r get/ini get exec pop}But it's probably best to nest things properly anyway.
 This should be considered "backup" behavior.
 
 An interest has developed in changing the font size. Currently,
