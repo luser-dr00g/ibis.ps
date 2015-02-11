@@ -108,25 +108,48 @@ dicttomark def % /dev
     } ifelse
 } def
 
+% proc str  kstringwidth  dx dy
+/kstringwidth {
+    dup stringwidth 3 2 roll           % p x y s
+    dup length 1 gt {                  % p x y s
+        0 1 2 index length 2 sub       % p x y s 0 1 len(s)-2
+        {                              % p x y s i
+            2 copy get                 % p x y s i s[i]
+            2 index 3 2 roll 1 add get % p x y s s[i] s[i+1]
+            gsave 0 0 moveto
+            5 index exec
+            currentpoint               % p x y s dx dy
+            grestore
+            4 3 roll add 3 1 roll      % p x y+=dy s dx
+            4 3 roll add 3 1 roll      % p x+=dx y s
+        } for
+    } if                               % p x y s
+    pop 3 2 roll pop                   % x y
+} def
+
 (ac) 7 kaddpair
 (al) 3 kaddpair
 (av) -10 kaddpair
 (ce) 5 kaddpair
+(ch) -3 kaddpair
 (cu) -5 kaddpair
 (de) -5 kaddpair
-(em) 5 kaddpair
-(ec) 7 kaddpair
+(ec) 10 kaddpair
+(ed) 5 kaddpair
 (el) 10 kaddpair
+(em) 5 kaddpair
 (ex) -10 kaddpair
 (il) -12 kaddpair
 (in) -10 kaddpair
 (li) -3 kaddpair
+(ll) -2 kaddpair
 (om) -5 kaddpair
 (ou) -10 kaddpair
 (re) 7 kaddpair
 (ri) 5 kaddpair
 (rn) -5 kaddpair
 (rp) 5 kaddpair
+(te) 5 kaddpair
 (ti) 10 kaddpair
 (tp) 10 kaddpair
 (ul) -5 kaddpair
@@ -134,9 +157,9 @@ dicttomark def % /dev
 (xe) -5 kaddpair
 (Al) -15 kaddpair
 (An) -10 kaddpair
+(Te) -5 kaddpair
 (Th) -5 kaddpair
-%(a) 0 get (w) 0 get kgetpair =
-%(-----)=
+%(a) 0 get (v) 0 get kgetpair =(-----)=
 
 % Text setting
 %
@@ -148,7 +171,10 @@ dicttomark def % /dev
         %text /spacecount dec
         chopline
         countspaces
-        /gap X currentpoint pop sub store
+        countchars
+        /gap { mark X currentpoint pop sub } stopped { cleartomark mark 0 } if exch pop store
+        /spaceadjust spacecount 0 ne { gap spacecount div }{ 0 } ifelse store
+        /charadjust charcount 0 ne { gap charcount div }{ 0 } ifelse store
         setline
         %(0)=only
         /spacecount 0 store
@@ -159,7 +185,10 @@ dicttomark def % /dev
     /blank { [ /eol cvx /justify? justify? /store cvx ] cvx /justify? false store exec }
     /fontchange true
     /spacecount 0
+    /charcount 0
     /gap 0
+    /spaceadjust 0
+    /charadjust 0
     /justify? true
     /kerning? true
 
@@ -170,12 +199,24 @@ dicttomark def % /dev
     /countspaces {
         0
         currentline first 0 get 0 exch getinterval {
-            0 get ( ) eq { 1 add } if
+            0 get
+            %( ) eq { 1 add } if
+            {
+                32 eq { 1 add } if
+            } forall
         } forall
         %spacecount =
         %dup =
         /spacecount exch store
-    } def
+    }
+
+    /countchars {
+        0
+        currentline first 0 get 0 exch getinterval {
+            0 get length add
+        } forall
+        /charcount exch store
+    }
 
     % trim leading/trailing space
     /chopline {
@@ -230,27 +271,32 @@ dicttomark def % /dev
         moveto
 
         currentline first 0 get 0 exch getinterval
-        %dup ==
+        %dup == spaceadjust =only( )=only spacecount =
         {
             %pstack()=
             %aload pop
             dup 0 get exch 1 get
             setfont
             kerning? {
-                {
-                    1 index 32 eq {
-                        pop pop gap spacecount div 0
+                justify? {
+                    dup ( ) eq { spaceadjust 0 rmoveto } if
+                    spacecount 0 eq {
+                        { kgetpair charadjust add 0
+                            currentfont /FontMatrix get dtransform rmoveto }
                     }{
-                        kgetpair 0
+                        { 1 index 32 eq { pop pop spaceadjust 0 }{ kgetpair 0 } ifelse
+                            currentfont /FontMatrix get dtransform rmoveto }
                     } ifelse
-                    currentfont /FontMatrix get dtransform rmoveto
-                } exch kshow
+                }{
+                    { kgetpair 0 currentfont /FontMatrix get dtransform rmoveto }
+                } ifelse
+                exch kshow
             }{
                 justify? {
                     spacecount 0 eq {
                         show
                     }{
-                        gap spacecount div 0 32 4 3 roll widthshow
+                        spaceadjust 0 32 4 3 roll widthshow
                     } ifelse
                 }{
                     show
@@ -268,7 +314,14 @@ dicttomark def % /dev
         %currentpoint pop =
         %(setword:)= pstack()=
         %currentline == flushpage flush(%lineedit)(r)file pop 
-        dup stringwidth pop dup currentpoint pop add X gt {
+        kerning? {
+            { kgetpair 0 currentfont /FontMatrix get dtransform rmoveto }
+            1 index kstringwidth
+        }{
+            dup stringwidth
+        } ifelse
+        %pstack()=
+        pop dup currentpoint pop add X ge {
             eol %setline
         } if
         0 rmoveto
@@ -704,10 +757,10 @@ This should be considered "backup" behavior.
 
 An interest has developed in changing the font size. Currently,
 this can be hacked with explicit postscript. 
-@{/fontsize 5 += /lead 3 += setfontfam /fontchange true store}Big text.
-@{/fontsize 5 -= /lead 3 -= setfontfam /fontchange true store}back to normal.
-@{/fontsize 2 *= /lead 1.5 *= setfontfam /fontchange true store}Double-size text.
-@{/fontsize .5 *= /lead .75 *= setfontfam /fontchange true store}back to normal.
+@{/fontsize 5 += /lead 3 += setfontfam /fontchange true store}Big text. 
+@{/fontsize 5 -= /lead 3 -= setfontfam /fontchange true store}back to normal. 
+@{/fontsize 2 *= /lead 1.5 *= setfontfam /fontchange true store}Double-size text. 
+@{/fontsize .5 *= /lead .75 *= setfontfam /fontchange true store}back to normal. 
 Has the lead actually been reset, or am I fooling myself?
 I think I may have written a bug where the lead can only increase.
 This extra text explains the purpose for this extra rambling text.
