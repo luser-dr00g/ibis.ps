@@ -82,7 +82,7 @@ dicttomark def % /dev
     setbounds pop savebounds
 } def
 
-/nextpage { showpage restorebounds eol } def
+/nextpage { showpage restorebounds x Y moveto } def
 
 /kpairs 26 dict def
 
@@ -130,40 +130,94 @@ dicttomark def % /dev
 (ac) 7 kaddpair
 (al) 3 kaddpair
 (av) -10 kaddpair
-(ce) 5 kaddpair
+(ca) 4 kaddpair
+(ce) 8 kaddpair
 (ch) -3 kaddpair
+(ck) 4 kaddpair
+(co) 5 kaddpair
 (cu) -5 kaddpair
 (de) -5 kaddpair
-(ec) 10 kaddpair
-(ed) 5 kaddpair
-(el) 10 kaddpair
+(ec) 13 kaddpair
+(ed) 7 kaddpair
+(el) 15 kaddpair
 (em) 5 kaddpair
 (ex) -10 kaddpair
+(he) 5 kaddpair
+(hi) 5 kaddpair
+(ie) 4 kaddpair
 (il) -12 kaddpair
 (in) -10 kaddpair
+(le) 5 kaddpair
 (li) -3 kaddpair
 (ll) -2 kaddpair
+(lo) 5 kaddpair
+(ly) 7 kaddpair
+(mm) -5 kaddpair
+(nd) 5 kaddpair
+(no) 5 kaddpair
 (om) -5 kaddpair
+(os) 4 kaddpair
 (ou) -10 kaddpair
 (re) 7 kaddpair
-(ri) 5 kaddpair
+(ri) 10 kaddpair
 (rn) -5 kaddpair
 (rp) 5 kaddpair
+(se) 5 kaddpair
+(sp) -5 kaddpair
+(ss) 5 kaddpair
 (te) 5 kaddpair
 (ti) 10 kaddpair
+(to) 7 kaddpair
 (tp) 10 kaddpair
 (ul) -5 kaddpair
+(us) -5 kaddpair
 (ut) -10 kaddpair
 (xe) -5 kaddpair
 (Al) -15 kaddpair
 (An) -10 kaddpair
 (Te) -5 kaddpair
-(Th) -5 kaddpair
+(Th) -7 kaddpair
 %(a) 0 get (v) 0 get kgetpair =(-----)=
 
 % Text setting
 %
 /text mark
+
+    %parameters
+    /justify? true
+    /kerning? true
+    /fontsize 10
+    /lead 12
+    /italic 0
+    /bold 0
+    /tty 0
+    /fontchange true  % set to true to make a font-parameter change take effect
+
+    /spacecount 0
+    /charcount 0
+    /gap 0
+    /spaceadjust 0
+    /charadjust 0
+    /fontfam null
+
+    /setfontfam {
+    text /fontfam [ %  -roman- -italic- -bold- -bold-italic- 
+        /Palatino-Roman findfont fontsize scalefont
+        /Palatino-Italic findfont fontsize scalefont
+        /Palatino-Bold findfont fontsize scalefont
+        /Palatino-BoldItalic findfont fontsize scalefont
+        /Courier findfont fontsize scalefont
+        /Courier-Oblique findfont fontsize scalefont
+        /Courier-Bold findfont fontsize scalefont
+        /Courier-BoldOblique findfont fontsize scalefont
+    ] put
+    }
+
+    % currentline is used as an extendable array of tuples
+    %    [  [ (text) <<font>> lead ]*  ]
+    /currentline 100 stack
+
+    % "end" the currentline by flushing it to the page
     /eol {
         updatelead
         /Y lead -=
@@ -181,20 +235,12 @@ dicttomark def % /dev
         y Y lt { x Y moveto }
                { nextpage } ifelse
     }
-    /heol { ( ) setword }
-    /blank { [ /eol cvx /justify? justify? /store cvx ] cvx /justify? false store exec }
-    /fontchange true
-    /spacecount 0
-    /charcount 0
-    /gap 0
-    /spaceadjust 0
-    /charadjust 0
-    /justify? true
-    /kerning? true
 
-    % currentline is used as an extendable array of tuples
-    %    [  [ (text) <<font>> lead ]*  ]
-    /currentline 100 stack
+    % "hard" return
+    /heol { ( ) setword }
+
+    % type the daughter line unjustified
+    /blank { [ /eol cvx /justify? justify? /store cvx ] cvx /justify? false store exec }
 
     /countspaces {
         0
@@ -252,6 +298,7 @@ dicttomark def % /dev
     }
 
     % scan currentline and set lead to the max lead from the line
+    % stash previous value as /leadchange
     /updatelead {
         /leadchange lead store
         currentline first 0 get 0 exch getinterval
@@ -388,24 +435,6 @@ dicttomark def % /dev
             } ifelse
         } loop
     }
-
-    /fontsize 11
-    /lead 12
-    /setfontfam {
-    text /fontfam [ %  -roman- -italic- -bold- -bold-italic- 
-        /Palatino-Roman findfont fontsize scalefont
-        /Palatino-Italic findfont fontsize scalefont
-        /Palatino-Bold findfont fontsize scalefont
-        /Palatino-BoldItalic findfont fontsize scalefont
-        /Courier findfont fontsize scalefont
-        /Courier-Oblique findfont fontsize scalefont
-        /Courier-Bold findfont fontsize scalefont
-        /Courier-BoldOblique findfont fontsize scalefont
-    ] put
-    }
-    /italic 0
-    /bold 0
-    /tty 0
 
 dicttomark def % /text
 
@@ -670,6 +699,7 @@ dicttomark newalter
     text begin
     setfontfam
     72 setmargin
+    x Y moveto
 } def
 
 /bye {/exitflag true def} def
@@ -752,16 +782,16 @@ So I just wasted some effort getting this to work:
     @@ Begin{i} italic @@ Begin{b} bold-italic @@ End{i} bold @@ End{b} normal
     @Begin{i} italic @Begin{b} bold-italic @End{i} bold @End{b} normal
 
-@{alt/r get/ini get exec pop}But it's probably best to nest things properly anyway.
+@{alt/r get/ini get exec pop updatefont}But it's probably best to nest things properly anyway.
 This should be considered "backup" behavior.
 
 An interest has developed in changing the font size. Currently,
 this can be hacked with explicit postscript. 
-@{/fontsize 5 += /lead 3 += setfontfam /fontchange true store}Big text. 
-@{/fontsize 5 -= /lead 3 -= setfontfam /fontchange true store}back to normal. 
-@{/fontsize 2 *= /lead 1.5 *= setfontfam /fontchange true store}Double-size text. 
-@{/fontsize .5 *= /lead .75 *= setfontfam /fontchange true store}back to normal. 
-Has the lead actually been reset, or am I fooling myself?
+@{/fontsize 5 += /lead 3 += setfontfam updatefont}Big text. 
+@{/fontsize 5 -= /lead 3 -= setfontfam updatefont}back to normal. 
+@{/fontsize 2 *= /lead 1.5 *= setfontfam updatefont}Double-size text. 
+@{/fontsize .5 *= /lead .75 *= setfontfam updatefont}back to normal. 
+@{alt/r get/ini get exec pop updatefont}Has the lead actually been reset, or am I fooling myself?
 I think I may have written a bug where the lead can only increase.
 This extra text explains the purpose for this extra rambling text.
 Whew. Fixed.
