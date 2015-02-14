@@ -3,9 +3,12 @@
 
 
 %optionally dump text to stdout while writing
-%/show { dup print (\n) print show } bind def
-%/ashow { dup print (\n) print ashow } bind def
-%/kshow { dup print (\n) print kshow } bind def
+/dumptext where { pop
+    /show { dup print  show } bind def
+    /ashow { dup print  ashow } bind def
+    /widthshow { dup print  widthshow } bind def
+    /kshow { dup print  kshow } bind def
+} if
 
 % essentially the same as level-2 >> operator
 % but it is used in an attempt at level-1 compatibility
@@ -680,8 +683,11 @@ sigil { sigil settext } def
     pop [ 1 index /short cvx ] cvx def
 } bind def
 
+% if fontchange is true, settext will reload the font from fontfam
+% using the current values of bold italic tty
 /updatefont { /fontchange true store } bind def
 
+%roman font
 /r mark
     /ini { tty 4 mul bold 2 mul italic add add
         /bold 0 store
@@ -694,16 +700,19 @@ sigil { sigil settext } def
         updatefont }
 dicttomark newalter
 
+%add italic if roman or bold or oblique if tty
 /i mark
     /ini { italic /italic 1 store updatefont }
     /fin { /italic exch store updatefont }
 dicttomark newalter
 
+%add bold
 /b mark
     /ini { bold /bold 1 store updatefont }
     /fin { /bold exch store updatefont }
 dicttomark newalter
 
+%tty font
 /t mark
     /ini { tty /tty 1 store updatefont }
     /fin { /tty exch store updatefont }
@@ -716,6 +725,7 @@ dicttomark newalter
     x Y moveto
 } bind def
 
+%end ibis and return to postscript
 /bye {/exitflag true store} bind def
 
 
@@ -780,7 +790,7 @@ Now with @b[bold].
 I finally remembered what "deferal" was all about. So let's 
 see if it works. It should allow bracketed commands to span
 multiple lines.
-Like so @i[ This sentence
+Like so: @i[ This sentence
 should be all italics
 despite spanning lines,
 in a line-oriented
