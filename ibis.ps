@@ -71,6 +71,7 @@
 /dev mark
     /size [ clippath pathbbox ]
     /bounds null
+    /marksonpage false
 dicttomark def % /dev
 /savebounds { dev /bounds [ x y X Y ] put } def
 /restorebounds { dev /bounds get aload pop setbounds } def
@@ -84,7 +85,7 @@ dicttomark def % /dev
     setbounds pop savebounds
 } def
 
-/nextpage { showpage restorebounds x Y moveto } def
+/nextpage { showpage dev /marksonpage false put restorebounds x Y moveto } def
 
 /kpairs 26 dict def
 
@@ -243,7 +244,10 @@ dicttomark def % /dev
     /heol { ( ) setword }
 
     % type the daughter line unjustified
-    /blank { [ /eol cvx /justify? justify? /store cvx ] cvx /justify? false store exec }
+    /blank {
+        [ /eol cvx /justify? justify? /store cvx ] cvx /justify? false store exec
+        eol % and a blank line
+    }
 
     /countspaces {
         0
@@ -355,6 +359,7 @@ dicttomark def % /dev
             } ifelse
         } forall
         currentline 0 0 put
+        dev /marksonpage true put
         %eol
     }
 
@@ -649,7 +654,8 @@ dicttomark def % /pairs
     } loop
 
     eol %setline
-    showpage
+    dev /marksonpage get { showpage } if
+
 } def
 
 % @@ define the at-sign as a command to print itself
@@ -711,6 +717,8 @@ dicttomark newalter
 } def
 
 /bye {/exitflag true def} def
+
+
 
 % print manual only if /manual is defined (eg. `gs -dmanual ibis.ps`)
 % uncomment this line to enable this, which allows running ibis.ps on other files
