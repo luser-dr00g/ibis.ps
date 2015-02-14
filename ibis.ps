@@ -13,18 +13,18 @@
 % in 2011, xpost did not have >>
 %
 % mark k1 v1 .. kN vN  dicttomark  dict(N)
-/dicttomark { counttomark dup dict begin 2 idiv { def } repeat pop currentdict end } def
+/dicttomark { counttomark dup dict begin 2 idiv { def } repeat pop currentdict end } bind def
 
 
 % Composite Index  inc/dec  -
 % (n.b. userdict is a composite object (a dict), as are arrays and strings)
-/inc { 2 copy get 1 add put } def
-/dec { 2 copy get 1 sub put } def
+/inc { 2 copy get 1 add put } bind def
+/dec { 2 copy get 1 sub put } bind def
 
 % /numeric-variable addend  +=  -
-/+= { 1 index load add store } def
-/-= { neg += } def
-/*= { 1 index load mul store } def
+/+= { 1 index load add store } bind def
+/-= { neg += } bind def
+/*= { 1 index load mul store } bind def
 
 
 % Stack type is an array where element 0 contains the index of the top of the stack.
@@ -32,14 +32,14 @@
 % An underflow will trigger a typecheck in get
 %
 % n  stack  array{n+1}:[0]=0
-/stack { 1 add array dup 0 0 put } def
-/top { dup 0 get get } def % S  top  a
-/spop { dup top exch 0 dec } def % S  spop  a  (S{n}->S'(n-1})
+/stack { 1 add array dup 0 0 put } bind def
+/top { dup 0 get get } bind def % S  top  a
+/spop { dup top exch 0 dec } bind def % S  spop  a  (S{n}->S'(n-1})
 /spush { % S a  spush  -  (S{n}->S'{n+1})
     dup type /stringtype eq { dup length string copy } if
     1 index 0 inc
     1 index 0 get exch put
-} def
+} bind def
 /sdrop { % S i  sdrop  -  (S{i}->removed)
     %(sdrop:)=
     1 index 0 get      % S i c
@@ -56,7 +56,7 @@
     } ifelse
     pop
     0 dec    % S'
-} def
+} bind def
 % 1 2 3 4 5 6  < array index
 % -----------
 % a b c d e f 2 sdrop
@@ -73,19 +73,19 @@
     /bounds null
     /marksonpage false
 dicttomark def % /dev
-/savebounds { dev /bounds [ x y X Y ] put } def
-/restorebounds { dev /bounds get aload pop setbounds } def
+/savebounds { dev /bounds [ x y X Y ] put } bind def
+/restorebounds { dev /bounds get aload pop setbounds } bind def
 /setbounds { % x y X Y  setbounds  -
     /Y exch def /X exch def /y exch def /x exch def
-} def
+} bind def
 /setmargin { % pts  setmargin  -
     dev /size get aload pop
     4 index sub 4 1 roll 4 index sub 4 1 roll
     4 index add 4 1 roll 4 index add 4 1 roll
     setbounds pop savebounds
-} def
+} bind def
 
-/nextpage { showpage dev /marksonpage false put restorebounds x Y moveto } def
+/nextpage { showpage dev /marksonpage false put restorebounds x Y moveto } bind def
 
 /kpairs 26 dict def
 
@@ -95,7 +95,7 @@ dicttomark def % /dev
     exch [ 3 1 roll >>  % (ab) <<98 n>>
     exch 0 get  % <<98 n>> 97
     exch kpairs 3 1 roll put
-} def
+} bind def
 
 % 97 98  kgetpair  n
 /kgetpair {
@@ -109,7 +109,7 @@ dicttomark def % /dev
     }{
         pop pop pop 0
     } ifelse
-} def
+} bind def
 
 % proc str  kstringwidth  dx dy
 /kstringwidth {
@@ -128,7 +128,7 @@ dicttomark def % /dev
         } for
     } if                               % p x y s
     pop 3 2 roll pop                   % x y
-} def
+} bind def
 
 %some tweaks for on-screen Palatino (ie. URW Palladio)
 (ac) 7 kaddpair
@@ -466,7 +466,7 @@ dicttomark def % /text
         4 1 roll pop pop % (a_b) n
         exec
     } ifelse
-} def
+} bind def
 %{(n)= =}{(b)= =}{(a)= =} (pretextpost) (text) find
 %(stack:)= pstack
 %quit
@@ -475,7 +475,7 @@ dicttomark def % /text
 /first { % (abc)  first  (bc) (a)
     dup 1 1 index length 1 sub getinterval exch
     0 1 getinterval
-} def
+} bind def
 
 % delimiter pairs
 /pairs mark
@@ -485,7 +485,7 @@ dicttomark def % /pairs
 % ([)  rhs  (])
 % (q)  rhs  (q)
 % (")  rhs  (")
-/rhs { pairs exch 2 copy known { get }{ exch pop } ifelse } def
+/rhs { pairs exch 2 copy known { get }{ exch pop } ifelse } bind def
 
 % the nest stack contains unclosed delimiters for nested short-form segments
 % but only if not immediately found on the same input line
@@ -497,7 +497,7 @@ dicttomark def % /pairs
 /deferal {
     2 array astore
     [ exch /nest cvx /exch cvx /spush cvx ] cvx
-} def
+} bind def
 
 % execute proc on the 'a' portion of string, return 'b' portion
 % {on_a} ([a]b)  delim  (b)
@@ -510,7 +510,7 @@ dicttomark def % /pairs
     5 2 roll        % not on_b on_a (a]b) (])
     %(delim)= pstack()=
     find
-} def
+} bind def
 
 % execute a short-form command, taking delimited argument from string,
 % return remainder of string
@@ -522,7 +522,7 @@ dicttomark def % /pairs
     exch /fin get % s ? {}
     [ 3 1 roll /exec cvx ] cvx exch % undo s
     delim
-} def
+} bind def
 
 % the pending stack contains unclosed environments bracketed by @Begin() @End()
 %
@@ -548,7 +548,7 @@ dicttomark def % /pairs
         3 2 roll alt exch get /fin get exec  % i
         pending exch sdrop
     }{ Err:symbol-not-in-pending-stack } ifelse
-} def
+} bind def
 
 % perform the @Begin() action for an enviroment
 % ([name]rem)  long  (rem)
@@ -567,7 +567,7 @@ dicttomark def % /pairs
     }
     5 3 roll  % {} {} {} (name]rem) (])
     find
-} def
+} bind def
 
 % perform the @End() action for an environment
 % ([name]rem)  long-end  (rem)
@@ -578,7 +578,7 @@ dicttomark def % /pairs
     {checkpending} %search pending stack and remove match
     5 3 roll  % {} {} {} (name]rem) (])
     find
-} def
+} bind def
 
 % long-form commands to enter/leave an environment
 /Begin { long } def
@@ -586,7 +586,7 @@ dicttomark def % /pairs
 
 % execute the first token from the string and process the remainder
 % str  execute  -
-/execute { token { exec process }{ BAD_COMMAND } ifelse } def
+/execute { token { exec process }{ BAD_COMMAND } ifelse } bind def
 
 % the "at" sign indicates the start of an embedded command
 /sigil <40> def
@@ -595,7 +595,7 @@ dicttomark def % /pairs
 /command {
     {settext} {execute} {settext} 4 3 roll
     sigil find
-} def
+} bind def
 
 % scan string for embedded @commands
 % and call settext for other text.
@@ -624,7 +624,7 @@ dicttomark def % /pairs
             command
         } ifelse
     } ifelse
-} def
+} bind def
 
 
 /src null def        % input file
@@ -656,7 +656,7 @@ dicttomark def % /pairs
     eol %setline
     dev /marksonpage get { showpage } if
 
-} def
+} bind def
 
 % @@ define the at-sign as a command to print itself
 sigil { sigil settext } def
@@ -678,9 +678,9 @@ sigil { sigil settext } def
     2 copy alt 3 1 roll put
     %create short-form procedure
     pop [ 1 index /short cvx ] cvx def
-} def
+} bind def
 
-/updatefont { /fontchange true store } def
+/updatefont { /fontchange true store } bind def
 
 /r mark
     /ini { tty 4 mul bold 2 mul italic add add
@@ -714,9 +714,9 @@ dicttomark newalter
     setfontfam
     72 setmargin
     x Y moveto
-} def
+} bind def
 
-/bye {/exitflag true def} def
+/bye {/exitflag true store} bind def
 
 
 
