@@ -249,7 +249,9 @@ dicttomark def % /dev
     % type the daughter line unjustified
     /blank {
         [ /eol cvx /justify? justify? /store cvx ] cvx /justify? false store exec
-        eol % and a blank line
+        /lead lead 2 copy .5 mul store
+        eol                             % and a (half) blank line
+        store
     }
 
     /countspaces {
@@ -718,6 +720,38 @@ dicttomark newalter
     /fin { /tty exch store updatefont }
 dicttomark newalter
 
+% name [ alt-entries ]  addstyle  -
+/addstyle { % name arr
+    [ /mark cvx 2 index  % name arr [ mark arr
+    {          % name arr [ mark ... arr[i]
+        alt exch get  % name arr [ mark ... dict
+        /ini get /exec cvx  % name arr [ mark ... {ini} exec
+    } forall
+    (1:)= pstack() =
+    (]) cvn cvx
+    (2:)= pstack() =
+    ] cvx  % name arr { mark {{ini} exec}* ] }
+    mark /ini 4 2 roll exch  % name mark /ini {{ini exec}*} arr
+    [ exch  % name mark /ini {ini*} [ arr
+    {  % name mark /ini {ini*} [ ... arr[i]
+        alt exch get  % name mark /ini {ini*} [ ... dict
+        /fin get /exec cvx  % name mark /ini {ini*} [ ... {fin} exec
+        counttomark 2 roll  % name mark /ini {ini*} [ {fin} exec ...
+    } forall
+    (3:)= pstack() =
+    /aload cvx /pop cvx counttomark 2 roll  % n [ /ini{ini*} [ aload pop {fin exec}*
+    ] cvx /fin exch  % name [ /ini{ini*} /fin{fin*}
+    dicttomark
+    newalter
+} def
+
+/eolafter mark
+    /ini { 0 }
+    /fin { pop eol }
+dicttomark newalter
+
+/heading { b t eolafter } addstyle
+
 /default {
     text begin
     setfontfam
@@ -744,6 +778,8 @@ dicttomark newalter
 default
 %currentfile /ibis load debug
 currentfile ibis
+
+@heading{Introduction}
 Text is passed to the output.
 Beginning to implement filled paragraphs.
 
