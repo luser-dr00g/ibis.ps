@@ -5,6 +5,7 @@
 %optionally dump text to stdout while writing
 %/show { dup print (\n) print show } bind def
 %/ashow { dup print (\n) print ashow } bind def
+%/kshow { dup print (\n) print kshow } bind def
 
 % essentially the same as level-2 >> operator
 % but it is used in an attempt at level-1 compatibility
@@ -28,6 +29,7 @@
 
 % Stack type is an array where element 0 contains the index of the top of the stack.
 % An overflow of the stack will trigger a rangecheck error in `put`.
+% An underflow will trigger a typecheck in get
 %
 % n  stack  array{n+1}:[0]=0
 /stack { 1 add array dup 0 0 put } def
@@ -127,6 +129,7 @@ dicttomark def % /dev
     pop 3 2 roll pop                   % x y
 } def
 
+%some tweaks for on-screen Palatino (ie. URW Palladio)
 (ac) 7 kaddpair
 (al) 3 kaddpair
 (av) -10 kaddpair
@@ -214,7 +217,7 @@ dicttomark def % /dev
     }
 
     % currentline is used as an extendable array of tuples
-    %    [  [ (text) <<font>> lead ]*  ]
+    %    [  [ (text) <<font>> lead kern? ]*  ]
     /currentline 100 stack
 
     % "end" the currentline by flushing it to the page
@@ -322,9 +325,10 @@ dicttomark def % /dev
         {
             %pstack()=
             %aload pop
-            dup 0 get exch 1 get
+            dup 0 get 1 index 1 get
             setfont
-            kerning? {
+            exch 3 get
+            {
                 justify? {
                     dup ( ) eq { spaceadjust 0 rmoveto } if
                     spacecount 0 eq {
@@ -361,7 +365,7 @@ dicttomark def % /dev
         %currentpoint pop =
         %(setword:)= pstack()=
         %currentline == flushpage flush(%lineedit)(r)file pop 
-        kerning? {
+        kerning? tty 0 eq and {
             { kgetpair 0 currentfont /FontMatrix get dtransform rmoveto }
             1 index kstringwidth
         }{
@@ -372,7 +376,7 @@ dicttomark def % /dev
             eol %setline
         } if
         0 rmoveto
-        currentfont lead 3 array astore
+        currentfont lead kerning? tty 0 eq and 4 array astore
         currentline exch spush
     }
 
@@ -462,7 +466,7 @@ dicttomark def % /text
 %(stack:)= pstack
 %quit
 
-%shift a 1-char string off of a larger string
+%shift a 1-element composite object off of a larger composite object
 /first { % (abc)  first  (bc) (a)
     dup 1 1 index length 1 sub getinterval exch
     0 1 getinterval
@@ -479,6 +483,7 @@ dicttomark def % /pairs
 /rhs { pairs exch 2 copy known { get }{ exch pop } ifelse } def
 
 % the nest stack contains unclosed delimiters for nested short-form segments
+% but only if not immediately found on the same input line
 %   eg. @i{ @b( @t< > ) }
 /nest 10 stack def
 % {on_a} (])  deferal  {[{on_a} (])] nest exch spush}
@@ -489,6 +494,7 @@ dicttomark def % /pairs
     [ exch /nest cvx /exch cvx /spush cvx ] cvx
 } def
 
+% execute proc on the 'a' portion of string, return 'b' portion
 % {on_a} ([a]b)  delim  (b)
 /delim {
     exch /process cvx exch /exec cvx 3 array astore cvx exch
@@ -501,6 +507,8 @@ dicttomark def % /pairs
     find
 } def
 
+% execute a short-form command, taking delimited argument from string,
+% return remainder of string
 % ([arg]rem) /name  short  (rem)
 /short {
     %(short)= pstack()=
@@ -763,8 +771,12 @@ Now with @b[bold].
 
 I finally remembered what "deferal" was all about. So let's 
 see if it works. It should allow bracketed commands to span
-multiple lines. Like so @i[ This sentence should be all italics
-despite spanning lines, in a line-oriented scanning routine. ]
+multiple lines.
+Like so @i[ This sentence
+should be all italics
+despite spanning lines,
+in a line-oriented
+scanning routine. ]
 And back to normal.
 
 Long-form uses the same command names, but it is now the @i{argument}
