@@ -4,7 +4,8 @@
 
 %% Simple Functions and Data Structures
 % ibisdict defs
-/ibisdict 50 dict begin currentdict def
+%/ibisdict 50 dict begin currentdict def
+50 dict /ibisdict 1 index def begin
 
 %optionally dump text to stdout while writing
 /dumptext where { pop
@@ -838,10 +839,23 @@ dicttomark newalter
     /fin { text /leftgap 3 2 roll put }
 dicttomark newalter
 
-/right { hardeol fullgap nojustify } addstyle
-/center { hardeol halfgap nojustify } addstyle
+/addindent mark
+    /ini { x /x x 36 add store }
+    /fin { /x exch store }
+dicttomark newalter
+
+/addrightindent mark
+    /ini { X /X X 36 sub store }
+    /fin { /X exch store }
+dicttomark newalter
+
+
+/right { hardeol fullgap nojustify eolafter } addstyle
+/center { hardeol halfgap nojustify eolafter } addstyle
 
 /verbatim { hardeol noblank nojustify } addstyle
+
+/quotation { addindent addrightindent nojustify eolafter } addstyle
 
 /heading { eolafter b i } addstyle
 /code { b t } addstyle
@@ -858,9 +872,9 @@ dicttomark newalter
 
 
 
-% print manual only if /manual is defined (eg. `gs -dmanual ibis.ps`)
-% uncomment this line to enable this, which allows running ibis.ps on other files
-% for ease of development, the source is maintained in this form to enable fast
+% Print manual only if /manual is defined (eg. `gs -dmanual ibis.ps`).
+% Uncomment this line to enable this, which allows running ibis.ps on other files.
+% For ease of development, the source is maintained in this form to enable fast
 % testing of changes. While the manual is being developed (in parallel), it also
 % serves as an example and testbed.
 %/manual where { pop }{ currentfile flushfile } ifelse 
@@ -877,6 +891,11 @@ currentfile ibis
 @code{ibis.ps} implements a typesetting engine and markup language.
 Text is broken into words and fitted onto lines, adjusting spacing
 for fully-justified blocks (with custom kerning).
+
+@Begin{quotation}
+The Scribe markup language defined the words, lines, pages, spacing, headings, footings, footnotes, numbering, tables of contents, etc. in a way similar to HTML. 
+@End{quotation}
+@right{http://en.wikipedia.org/wiki/Scribe_(markup_language)}
 
 There are various ways of executing a command to change
 a section of text. All commands are introduced by the @@  character,
@@ -900,7 +919,8 @@ the backquote and colon are not postscript delimiters.
 If a short-form @code{i} command has its arguments all on
 one source-line, then the @i{ini/fin} pair of functions are orchestrated
 as part of parsing the line. Otherwise if the closing delimiter is not
-on the same source line, it is placed on a stack which governs the searching
+on the same source line, a [right-delimiter {fin}] tuple is placed on a
+stack which governs the searching
 and parsing of subsequent lines.
 
 The long form uses the same command names, but it is now the @i{argument}
