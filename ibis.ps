@@ -2,6 +2,9 @@
 %(../debug.ps/db5.ps)run %currentfile cvx debug
 
 
+%% Simple Functions and Data Structures
+
+
 %optionally dump text to stdout while writing
 /dumptext where { pop
     /show { dup print  show } bind def
@@ -68,6 +71,9 @@
 %/t { 6 a b c d e f } cvlit def t 2 sdrop t ==
 
 
+%% Output Device 
+
+
 % Output device is described only by its bounding box.
 % As text is set on the page, the upper bound decreases so the box remains invariant.
 %
@@ -89,6 +95,10 @@ dicttomark def % /dev
 } bind def
 
 /nextpage { showpage dev /marksonpage false put restorebounds x Y moveto } bind def
+
+
+%% Kerning Functions
+
 
 /kpairs 26 dict def
 
@@ -136,7 +146,10 @@ dicttomark def % /dev
 %some tweaks for on-screen Palatino (ie. URW Palladio)
 (ac) 7 kaddpair
 (al) 3 kaddpair
+(am) 3 kaddpair
+(an) 3 kaddpair
 (av) -10 kaddpair
+(bl) 4 kaddpair
 (ca) 4 kaddpair
 (ce) 8 kaddpair
 (ch) -3 kaddpair
@@ -147,44 +160,56 @@ dicttomark def % /dev
 (ec) 13 kaddpair
 (ed) 7 kaddpair
 (el) 15 kaddpair
-(em) 5 kaddpair
-(ex) -10 kaddpair
+(em) 12 kaddpair
+(en) 7 kaddpair
+(ex) -8 kaddpair
 (he) 5 kaddpair
 (hi) 5 kaddpair
 (ie) 4 kaddpair
 (il) -12 kaddpair
-(in) -10 kaddpair
+(in) -5 kaddpair
 (le) 5 kaddpair
 (li) -3 kaddpair
 (ll) -2 kaddpair
 (lo) 5 kaddpair
 (ly) 7 kaddpair
-(mm) -5 kaddpair
+(mm) -10 kaddpair
 (nd) 5 kaddpair
+(nn) -10 kaddpair
 (no) 5 kaddpair
-(om) -5 kaddpair
+(nt) 5 kaddpair
+(om) -2 kaddpair
+(on) -2 kaddpair
 (os) 4 kaddpair
 (ou) -10 kaddpair
 (re) 7 kaddpair
 (ri) 10 kaddpair
+(rl) 3 kaddpair
 (rn) -5 kaddpair
 (rp) 5 kaddpair
 (se) 5 kaddpair
 (sp) -5 kaddpair
 (ss) 5 kaddpair
+(st) 4 kaddpair
 (te) 5 kaddpair
-(ti) 10 kaddpair
+(ti) 7 kaddpair
 (to) 7 kaddpair
 (tp) 10 kaddpair
+(tr) -3 kaddpair
 (ul) -5 kaddpair
 (us) -5 kaddpair
 (ut) -10 kaddpair
 (xe) -5 kaddpair
+(xt) -2 kaddpair
 (Al) -15 kaddpair
 (An) -10 kaddpair
 (Te) -5 kaddpair
 (Th) -7 kaddpair
 %(a) 0 get (v) 0 get kgetpair =(-----)=
+
+
+%% /text Dictionary
+
 
 % Text setting
 %
@@ -384,6 +409,10 @@ dicttomark def % /dev
         %pstack()=
         pop dup currentpoint pop add X ge {
             eol %setline
+            %fontchange {
+                fontfam tty 4 mul bold 2 mul add italic add get setfont
+                /fontchange false store
+            %} if
         } if
         0 rmoveto
         currentfont lead kerning? tty 0 eq and 4 array astore
@@ -453,8 +482,8 @@ dicttomark def % /dev
 dicttomark def % /text
 
 
-% Manuscript processing
-%
+%% Manuscript Processing
+
 
 % find takes 3 procedures, a string and search-string
 % and executes on_a and on_b upon the returned substrings if found
@@ -667,7 +696,10 @@ dicttomark def % /pairs
 sigil { sigil settext } def
 
 
-%alterations, aka environments
+%% Alterations, aka Environments
+
+
+% dict for alteration dictionaries
 /alt 20 dict def
 
 % install an environment in the alterations dict
@@ -702,7 +734,8 @@ sigil { sigil settext } def
         updatefont }
 dicttomark newalter
 
-%add italic if roman or bold or oblique if tty
+%add italic if roman or bold
+% or oblique if tty
 /i mark
     /ini { italic /italic 1 store updatefont }
     /fin { /italic exch store updatefont }
@@ -750,7 +783,8 @@ dicttomark newalter
     /fin { pop eol }
 dicttomark newalter
 
-/heading { b t eolafter } addstyle
+/heading { eolafter b i } addstyle
+/code { b t } addstyle
 
 /default {
     text begin
@@ -780,14 +814,15 @@ default
 currentfile ibis
 
 @heading{Introduction}
-Text is passed to the output.
-Beginning to implement filled paragraphs.
+@code{ibis.ps} implements a typesetting engine and markup language.
+Text is broken into words and fitted onto lines, adjusting spacing
+for fully-justified blocks (with custom kerning).
 
 There are various ways of executing a command to change
 a section of text. All commands are introduced by the @@  character,
 known internally as the "sigil".
 
-The simple command @@ i for italics, can use the short form 
+The simple command @code{i} for italics, can use the short form 
 with various sets of delimiters.
 
     @@ i[italics] produces @{/tab currentpoint pop def}@i[italics]
@@ -804,6 +839,18 @@ with various sets of delimiters.
 
 These last two require an extra space after the command name since
 the backquote and colon are not postscript delimiters.
+
+If a short-form @code{i} command has its arguments all on
+one source-line, then the @i{ini/fin} pair of functions are orchestrated
+as part of parsing the line. Otherwise if the closing delimiter is not
+on the same source line, it is placed on a stack which governs the searching
+an parsing of subsequent lines.
+
+The long form uses the same command names, but it is now the @i{argument}
+to the @@ Begin{} or @@ End{} command.
+
+@@ Begin{i}@Begin{i}Start italics.
+@@ End{i}@End{i}End italics. 
 
 Incidentally, since the command name is scanned with 'token' and
 executed with 'exec', it can even be a postscript procedure.
@@ -823,6 +870,10 @@ remainder to be printed (it should leave a string on the stack).
 
 Now with @b[bold].
 
+@t[ typewriter-text @i<oblique> ]
+
+@t[T @b{B @i<I @r `Roman should override all of' italics,> bold,} and typewriter] flags. 
+
 I finally remembered what "deferal" was all about. So let's 
 see if it works. It should allow bracketed commands to span
 multiple lines.
@@ -833,14 +884,6 @@ in a line-oriented
 scanning routine. ]
 And back to normal.
 
-Long-form uses the same command names, but it is now the @i{argument}
-to the @@ Begin{} or @@ End{} command.
-
-@@ Begin{i}@Begin{i}Start italics.
-@@ End{i}@End{i}End italics. 
-
-@t[ typewriter-text @i<oblique> ]
-
 Haha! I just read in the scribe paper that @@ Begin() and @@ End()
 sections should always be properly nested.
 So I just wasted some effort getting this to work:
@@ -848,7 +891,8 @@ So I just wasted some effort getting this to work:
     @@ Begin{i} italic @@ Begin{b} bold-italic @@ End{i} bold @@ End{b} normal
     @Begin{i} italic @Begin{b} bold-italic @End{i} bold @End{b} normal
 
-@{alt/r get/ini get exec pop updatefont}But it's probably best to nest things properly anyway.
+@{alt/r get/ini get exec pop updatefont}But it's probably best to
+nest things properly anyway.
 This should be considered "backup" behavior.
 
 An interest has developed in changing the font size. Currently,
@@ -857,7 +901,8 @@ this can be hacked with explicit postscript.
 @{/fontsize 5 -= /lead 3 -= setfontfam updatefont}back to normal. 
 @{/fontsize 2 *= /lead 1.5 *= setfontfam updatefont}Double-size text. 
 @{/fontsize .5 *= /lead .75 *= setfontfam updatefont}back to normal. 
-@{alt/r get/ini get exec pop updatefont}Has the lead actually been reset, or am I fooling myself?
+@{alt/r get/ini get exec pop updatefont}Has the lead actually been
+reset, or am I fooling myself?
 I think I may have written a bug where the lead can only increase.
 This extra text explains the purpose for this extra rambling text.
 Whew. Fixed.
@@ -870,7 +915,30 @@ implementation has a little more work to do. Currently ibis does not
 correctly handle nesting of the same delimiters, and you should use 
 different ones when nesting so it doesn't get confused.
 
-@t[T @b{B @i<I @r `Roman should override all of' italics,> bold,} and typewriter] flags. 
+@heading{Styles}
+I think I've built-up the requisite functionality to implement styles
+in a sensible manner. It's unfortunate that I can't locate the Scribe
+Expert Manual where specifying styles is supposed to be explained.
+
+So far, a style is a short-hand for any number of "alterations" which
+can be installed and uninstalled in a controlled manner. An alteration
+is a dictionary containing two procedures: @i{ini} and @i{fin}, where
+@i{ini} returns an object which is later passed to @i{fin}. 
+
+The font operations have been implemented in terms of alteration dictionaries.
+The @@ i{} command tweaks a variable called @i{italic} and sets a variable
+called @i{fontchange} to @b{true}. The @i{ini} function for @i{i} returns
+the previous value of @i{italic} so that @i{fin}, upon receiving this value
+may restore it.
+
+So a @b{style} is a composition of these alteration dictionaries.
+And pretty-much any behavior desired can be realized by constructing 
+custom alteration dictionaries to be composed. The values returned by
+the @i{ini} functions are collected in an array which constitutes the 
+style's @i{ini} function's return value. The style's @i{fin} function 
+receives this array, calls @code{aload pop} and the composed @i{fin}
+functions are executed in the reverse order to consume their arguments
+naturally from the operand stack.
 
 @bye
 %(stack:)= pstack(---)= currentfile flushfile
