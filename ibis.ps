@@ -3,7 +3,8 @@
 
 
 %% Simple Functions and Data Structures
-
+% ibisdict defs
+/ibisdict 50 dict begin currentdict def
 
 %optionally dump text to stdout while writing
 /dumptext where { pop
@@ -23,7 +24,7 @@
 
 
 % Composite Index  inc/dec  -
-% (n.b. userdict is a composite object (a dict), as are arrays and strings)
+% (n.b. dicts are composite objects, as are arrays and strings)
 /inc { 2 copy get 1 add put } bind def
 /dec { 2 copy get 1 sub put } bind def
 
@@ -38,7 +39,7 @@
 % An underflow will trigger a typecheck in get
 %
 % n  stack  array{n+1}:[0]=0
-/stack { 1 add array dup 0 0 put } bind def
+/stack { 1 add array dup 0 0 put } bind def  % who needs the real stack when there's pstack??
 /top { dup 0 get get } bind def % S  top  a
 /spop { dup top exch 0 dec } bind def % S  spop  a  (S{n}->S'(n-1})
 /spush { % S a  spush  -  (S{n}->S'{n+1})
@@ -72,7 +73,7 @@
 
 
 %% Output Device 
-
+% ibisdict defs
 
 % Output device is described only by its bounding box.
 % As text is set on the page, the upper bound decreases so the box remains invariant.
@@ -98,7 +99,7 @@ dicttomark def % /dev
 
 
 %% Kerning Functions
-
+% ibisdict defs
 
 /kpairs 26 dict def
 
@@ -209,7 +210,7 @@ dicttomark def % /dev
 
 
 %% /text Dictionary
-
+% text defs
 
 % Text setting
 %
@@ -486,7 +487,7 @@ dicttomark def % /text
 
 
 %% Manuscript Processing
-
+% ibisdict defs
 
 % find takes 3 procedures, a string and search-string
 % and executes on_a and on_b upon the returned substrings if found
@@ -701,7 +702,7 @@ sigil { sigil settext } def
 
 
 %% Alterations, aka Environments
-
+% ibisdict and alt defs
 
 % dict for alteration dictionaries
 /alt 20 dict def
@@ -845,7 +846,7 @@ dicttomark newalter
 %stepon
 %traceon
 
-default
+default % text begin
 %currentfile /ibis load debug
 currentfile ibis
 
