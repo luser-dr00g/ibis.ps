@@ -238,10 +238,10 @@ dicttomark def % /dev
         /Palatino-Italic findfont fontsize scalefont
         /Palatino-Bold findfont fontsize scalefont
         /Palatino-BoldItalic findfont fontsize scalefont
-        /Courier findfont fontsize scalefont
-        /Courier-Oblique findfont fontsize scalefont
-        /Courier-Bold findfont fontsize scalefont
-        /Courier-BoldOblique findfont fontsize scalefont
+        /Courier findfont fontsize .9 mul scalefont
+        /Courier-Oblique findfont fontsize .9 mul scalefont
+        /Courier-Bold findfont fontsize .9 mul scalefont
+        /Courier-BoldOblique findfont fontsize .9 mul scalefont
     ] put
     }
 
@@ -393,6 +393,9 @@ dicttomark def % /dev
         %eol
     }
 
+    % allocate new string
+    % allocate [ (str) <<font>> lead kern? ] tuple
+    % push to currentline stack
     /addwordtoline {
         dup length string copy
         %dup length 1 add string dup 3 1 roll copy pop  % copy and append space
@@ -525,6 +528,7 @@ dicttomark def % /pairs
 % but only if not immediately found on the same input line
 %   eg. @i{ @b( @t< > ) }
 /nest 10 stack def
+
 % {on_a} (])  deferal  {[{on_a} (])] nest exch spush}
 % create a save-it-for-later proc
 % for the not-found clause of find
@@ -683,7 +687,7 @@ dicttomark def % /pairs
             %process
             exit
         }ifelse
-        heol
+        %heol
         exitflag { exit } if
     } loop
 
@@ -783,6 +787,38 @@ dicttomark newalter
     /fin { pop eol }
 dicttomark newalter
 
+/hardeol mark
+    /ini {
+        [
+        text /heol get text /heol { eol } put
+        text /settext get text /settext {
+            fontchange {
+                fontfam tty 4 mul bold 2 mul add italic add get setfont
+                /fontchange false store
+            } if
+            addwordtoline
+        } put
+        ]
+    }
+    /fin {
+        aload pop
+        text /settext 3 2 roll put
+        text /heol 3 2 roll put
+    }
+dicttomark newalter
+
+/noblank mark
+    /ini { text /blank get text /blank { } put }
+    /fin { text /blank 3 2 roll put }
+dicttomark newalter
+
+/nojustify mark
+    /ini { justify? /justify? false store }
+    /fin { /justify exch store }
+dicttomark newalter
+
+/verbatim { hardeol noblank nojustify } addstyle
+
 /heading { eolafter b i } addstyle
 /code { b t } addstyle
 
@@ -825,17 +861,14 @@ known internally as the "sigil".
 The simple command @code{i} for italics, can use the short form 
 with various sets of delimiters.
 
+@Begin{verbatim}
     @@ i[italics] produces @{/tab currentpoint pop def}@i[italics]
-
     @@ i(italics) @{tab currentpoint exch pop moveto}@i(italics)
-
     @@ i<italics> @{tab currentpoint exch pop moveto}@i<italics>
-
     @@ i{italics} @{tab currentpoint exch pop moveto}@i{italics}
-
     @@ i `italics' @{tab currentpoint exch pop moveto}@i `italics'
-
     @@ i :italics; @{tab currentpoint exch pop moveto}@i :italics;
+@End{verbatim}
 
 These last two require an extra space after the command name since
 the backquote and colon are not postscript delimiters.
@@ -844,7 +877,7 @@ If a short-form @code{i} command has its arguments all on
 one source-line, then the @i{ini/fin} pair of functions are orchestrated
 as part of parsing the line. Otherwise if the closing delimiter is not
 on the same source line, it is placed on a stack which governs the searching
-an parsing of subsequent lines.
+and parsing of subsequent lines.
 
 The long form uses the same command names, but it is now the @i{argument}
 to the @@ Begin{} or @@ End{} command.
@@ -856,9 +889,10 @@ Incidentally, since the command name is scanned with 'token' and
 executed with 'exec', it can even be a postscript procedure.
 @{/oldfont currentfont def}
 
+@Begin{verbatim}
     @@ {/Courier 11 selectfont}text in Courier
-
     @{/Courier 11 selectfont}text in Courier
+@End{verbatim}
 
 @{oldfont setfont}
 Only "short-form" commands take a delimited argument. 
@@ -868,11 +902,11 @@ But they do receive the remaining portion of the line as a string,
 so a custom command may consume data from the string and yield the
 remainder to be printed (it should leave a string on the stack).
 
-Now with @b[bold].
-
-@t[ typewriter-text @i<oblique> ]
-
-@t[T @b{B @i<I @r `Roman should override all of' italics,> bold,} and typewriter] flags. 
+@Begin{verbatim}
+    Now with @b[bold].
+    @t[ typewriter-text @i<oblique> ]
+    @t[T @b{B @i<I @r `Roman should override all of' italics,> bold,} and typewriter] flags. 
+@End{verbatim}
 
 I finally remembered what "deferal" was all about. So let's 
 see if it works. It should allow bracketed commands to span
@@ -888,8 +922,10 @@ Haha! I just read in the scribe paper that @@ Begin() and @@ End()
 sections should always be properly nested.
 So I just wasted some effort getting this to work:
 
+@Begin{verbatim}
     @@ Begin{i} italic @@ Begin{b} bold-italic @@ End{i} bold @@ End{b} normal
     @Begin{i} italic @Begin{b} bold-italic @End{i} bold @End{b} normal
+@End{verbatim}
 
 @{alt/r get/ini get exec pop updatefont}But it's probably best to
 nest things properly anyway.
