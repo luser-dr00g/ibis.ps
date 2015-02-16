@@ -82,6 +82,7 @@
     /size [ clippath pathbbox ]
     /bounds null
     /marksonpage false
+    /pagenum 1
 dicttomark def % /dev
 /savebounds { dev /bounds [ x y X Y ] put } bind def
 /restorebounds { dev /bounds get aload pop setbounds } bind def
@@ -95,7 +96,13 @@ dicttomark def % /dev
     setbounds pop savebounds
 } bind def
 
-/nextpage { showpage dev /marksonpage false put restorebounds x Y moveto } bind def
+/nextpage {
+    showpage
+    dev /marksonpage false put
+    dev /pagenum inc
+    restorebounds
+    x Y moveto
+} bind def
 
 
 %% Kerning Functions
@@ -217,6 +224,7 @@ dicttomark def % /dev
 /text mark
 
     %parameters
+    /leftgap 0   %  0 | .5 | 1  proportion of the gap to skip at the left
     /justify? true
     /kerning? true
     /fontsize 10
@@ -354,6 +362,7 @@ dicttomark def % /dev
         x Y
         %(setline:)= pstack()=
         moveto
+        leftgap gap mul 0 rmoveto
 
         currentline first 0 get 0 exch getinterval
         %dup == spaceadjust =only( )=only spacecount =
@@ -488,6 +497,7 @@ dicttomark def % /text
 
 %% Manuscript Processing
 % ibisdict defs
+
 
 % find takes 3 procedures, a string and search-string
 % and executes on_a and on_b upon the returned substrings if found
@@ -818,6 +828,19 @@ dicttomark newalter
     /fin { /justify exch store }
 dicttomark newalter
 
+/fullgap mark
+    /ini { text /leftgap get text /leftgap 1 put }
+    /fin { text /leftgap 3 2 roll put }
+dicttomark newalter
+
+/halfgap mark
+    /ini { text /leftgap get text /leftgap .5 put }
+    /fin { text /leftgap 3 2 roll put }
+dicttomark newalter
+
+/right { hardeol fullgap nojustify } addstyle
+/center { hardeol halfgap nojustify } addstyle
+
 /verbatim { hardeol noblank nojustify } addstyle
 
 /heading { eolafter b i } addstyle
@@ -846,7 +869,7 @@ dicttomark newalter
 %stepon
 %traceon
 
-default % text begin
+default % nb. calls text begin. dictstack now contains: <ibisdict> <text>
 %currentfile /ibis load debug
 currentfile ibis
 
@@ -908,6 +931,23 @@ remainder to be printed (it should leave a string on the stack).
     @t[ typewriter-text @i<oblique> ]
     @t[T @b{B @i<I @r `Roman should override all of' italics,> bold,} and typewriter] flags. 
 @End{verbatim}
+
+@Begin{right}Flush-Right
+Text.
+All
+Along
+The
+Right
+Edge.
+@End{right}
+
+@Begin{center}
+Center
+this
+text,
+please.
+@End{center}
+
 
 I finally remembered what "deferal" was all about. So let's 
 see if it works. It should allow bracketed commands to span
