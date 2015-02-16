@@ -760,9 +760,9 @@ dicttomark newalter
         alt exch get  % name arr [ mark ... dict
         /ini get /exec cvx  % name arr [ mark ... {ini} exec
     } forall
-    (1:)= pstack() =
+    %(1:)= pstack() =
     (]) cvn cvx
-    (2:)= pstack() =
+    %(2:)= pstack() =
     ] cvx  % name arr { mark {{ini} exec}* ] }
     mark /ini 4 2 roll exch  % name mark /ini {{ini exec}*} arr
     [ exch  % name mark /ini {ini*} [ arr
@@ -771,7 +771,7 @@ dicttomark newalter
         /fin get /exec cvx  % name mark /ini {ini*} [ ... {fin} exec
         counttomark 2 roll  % name mark /ini {ini*} [ {fin} exec ...
     } forall
-    (3:)= pstack() =
+    %(3:)= pstack() =
     /aload cvx /pop cvx counttomark 2 roll  % n [ /ini{ini*} [ aload pop {fin exec}*
     ] cvx /fin exch  % name [ /ini{ini*} /fin{fin*}
     dicttomark
