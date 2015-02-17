@@ -9,10 +9,10 @@
 
 %optionally dump text to stdout while writing
 /dumptext where { pop
-    /show { dup print  show } bind def
-    /ashow { dup print  ashow } bind def
-    /widthshow { dup print  widthshow } bind def
-    /kshow { dup print  kshow } bind def
+    /show { dup ==  show } bind def
+    /ashow { dup ==  ashow } bind def
+    /widthshow { dup ==  widthshow } bind def
+    /kshow { dup ==  kshow } bind def
 } if
 
 % essentially the same as level-2 >> operator
@@ -240,6 +240,7 @@ dicttomark def % /dev
     /gap 0
     /spaceadjust 0
     /charadjust 0
+    /justblank false
     /fontfam null
 
     /setfontfam {
@@ -285,10 +286,11 @@ dicttomark def % /dev
 
     % type the daughter line unjustified
     /blank {
-        [ /eol cvx /justify? justify? /store cvx ] cvx /justify? false store exec
-        /lead lead 2 copy .5 mul store
-        eol                             % and a (half) blank line
-        store
+        justblank not {
+            [ /eol cvx /justify? justify? /store cvx ] cvx /justify? false store exec
+            /Y lead .5 mul -=
+            /justblank true store
+        } if
     }
 
     /countspaces {
@@ -694,7 +696,7 @@ dicttomark def % /pairs
     %pstack()=
     {
         src buf readline {
-            dup length 0 eq { blank } if
+            dup length 0 eq { blank }{ /justblank false store } ifelse
             %dup dup length 1 sub get = quit
             process
             heol
@@ -713,6 +715,9 @@ dicttomark def % /pairs
 
 % @@ define the at-sign as a command to print itself
 sigil { sigil settext } def
+
+/comment { pop () } def
+/c //comment def
 
 
 %% Alterations, aka Environments
@@ -770,6 +775,20 @@ dicttomark newalter
 /t mark
     /ini { tty /tty 1 store updatefont }
     /fin { /tty exch store updatefont }
+dicttomark newalter
+
+/font+ mark
+    /ini { [ fontsize /fontsize 1.25 *= lead /lead 1.25 *= ]
+            setfontfam updatefont }
+    /fin { aload pop /lead exch store /fontsize exch store
+            setfontfam updatefont }
+dicttomark newalter
+
+/font- mark
+    /ini { [ fontsize /fontsize .8 *= lead /lead .8 *= ]
+            setfontfam updatefont }
+    /fin { aload pop /lead exch store /fontsize exch store
+            setfontfam updatefont }
 dicttomark newalter
 
 % name [ alt-entries ]  addstyle  -
@@ -857,15 +876,19 @@ dicttomark newalter
     /fin { /X exch store }
 dicttomark newalter
 
+/tightlead mark
+    /ini { lead /lead .9 *= }
+    /fin { /lead exch store }
+dicttomark newalter
 
 /right { hardeol fullgap nojustify eolafter } addstyle
 /center { hardeol halfgap nojustify eolafter } addstyle
 
 /verbatim { hardeol noblank nojustify eolafter } addstyle
 
-/quotation { addindent addrightindent eolbefore eolafter } addstyle
+/quotation { eolbefore addindent addrightindent tightlead eolafter } addstyle
 
-/heading { eolafter b i } addstyle
+/heading { eolbefore b i font+ eolafter } addstyle
 /code { b t } addstyle
 
 /default {
@@ -877,7 +900,6 @@ dicttomark newalter
 
 %end ibis and return to postscript
 /bye {/exitflag true store} bind def
-
 
 
 % Print manual only if /manual is defined (eg. `gs -dmanual ibis.ps`).
@@ -895,6 +917,9 @@ default % nb. calls text begin. dictstack now contains: <ibisdict> <text>
 %currentfile /ibis load debug
 currentfile ibis
 
+@comment This is a comment.
+This is normal text.
+
 @heading{Introduction}
 @code{ibis.ps} implements a typesetting engine and markup language.
 Text is broken into words and fitted onto lines, adjusting spacing
@@ -903,15 +928,19 @@ for fully-justified blocks (with custom kerning).
 @Begin{quotation}
 The Scribe markup language defined the words, lines, pages, spacing, headings, footings, footnotes, numbering, tables of contents, etc. in a way similar to HTML. 
 
+
 @right{http://en.wikipedia.org/wiki/Scribe_(markup_language)}
 @End{quotation}
+
 
 There are various ways of executing a command to change
 a section of text. All commands are introduced by the @@  character,
 known internally as the "sigil".
 
+
 The simple command @code{i} for italics, can use the short form 
 with various sets of delimiters.
+
 
 @Begin{verbatim}
     @@ i[italics] produces @{/tab currentpoint pop def}@i[italics]
@@ -947,8 +976,9 @@ executed with 'exec', it can even be a postscript procedure.
     @@ {/Courier 11 selectfont}text in Courier
     @{/Courier 11 selectfont}text in Courier
 @End{verbatim}
-
+@{/justify? true store}
 @{oldfont setfont}
+
 Only "short-form" commands take a delimited argument. 
 The @@ {arbitrary ps code} commands are not "short-form", 
 and do not take an argument but apply directly to the current state.
@@ -961,22 +991,16 @@ remainder to be printed (it should leave a string on the stack).
     @t[ typewriter-text @i<oblique> ]
     @t[T @b{B @i<I @r `Roman should override all of' italics,> bold,} and typewriter] flags. 
 @End{verbatim}
+@{/justify? true store}
 
-@Begin{right}Flush-Right
-Text.
-All
-Along
-The
-Right
-Edge.
+@Begin{right}
+Flush-Right Text.
 @End{right}
 
 @Begin{center}
-Center
-this
-text,
-please.
+Centered text,
 @End{center}
+@{/justify? true store}
 
 
 I finally remembered what "deferal" was all about. So let's 
@@ -998,9 +1022,11 @@ So I just wasted some effort getting this to work:
     @Begin{i} italic @Begin{b} bold-italic @End{i} bold @End{b} normal
 @End{verbatim}
 
+@{/justify? true store}
 @{alt/r get/ini get exec pop updatefont}But it's probably best to
 nest things properly anyway.
 This should be considered "backup" behavior.
+
 
 An interest has developed in changing the font size. Currently,
 this can be hacked with explicit postscript. 
@@ -1014,6 +1040,7 @@ I think I may have written a bug where the lead can only increase.
 This extra text explains the purpose for this extra rambling text.
 Whew. Fixed.
 
+
 I just read in the scribe user manual that the same brackets should
 be able to nest. This I have to fix. I had assumed that the variety
 of bracket choices () [] {} <> was for the convenience of the implementation,
@@ -1022,21 +1049,26 @@ implementation has a little more work to do. Currently ibis does not
 correctly handle nesting of the same delimiters, and you should use 
 different ones when nesting so it doesn't get confused.
 
+
 @heading{Styles}
+@{/justify? true store}
 I think I've built-up the requisite functionality to implement styles
 in a sensible manner. It's unfortunate that I can't locate the Scribe
 Expert Manual where specifying styles is supposed to be explained.
+
 
 So far, a style is a short-hand for any number of "alterations" which
 can be installed and uninstalled in a controlled manner. An alteration
 is a dictionary containing two procedures: @i{ini} and @i{fin}, where
 @i{ini} returns an object which is later passed to @i{fin}. 
 
+
 The font operations have been implemented in terms of alteration dictionaries.
 The @@ i{} command tweaks a variable called @i{italic} and sets a variable
 called @i{fontchange} to @b{true}. The @i{ini} function for @i{i} returns
 the previous value of @i{italic} so that @i{fin}, upon receiving this value
 may restore it.
+
 
 So a @b{style} is a composition of these alteration dictionaries.
 And pretty-much any behavior desired can be realized by constructing 
@@ -1046,6 +1078,15 @@ style's @i{ini} function's return value. The style's @i{fin} function
 receives this array, calls @code{aload pop} and the composed @i{fin}
 functions are executed in the reverse order to consume their arguments
 naturally from the operand stack.
+
+
+I cleaned-up the internal handling of @code{eol} commands, so you should
+be able to add extra newlines between paragraphs in the source which
+are removed and normalized for the output. The @code{blank} function
+which is called for blank lines sets a variable and does nothing if
+repeatedly called. A non-blank line clears the variable.
+
+
 
 @bye
 %(stack:)= pstack(---)= currentfile flushfile
