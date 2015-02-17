@@ -229,7 +229,7 @@ dicttomark def % /dev
     /justify? true
     /kerning? true
     /fontsize 10
-    /lead 12
+    /lead 13
     /italic 0
     /bold 0
     /tty 0
@@ -261,19 +261,21 @@ dicttomark def % /dev
 
     % "end" the currentline by flushing it to the page
     /eol {
-        updatelead
-        /Y lead -=
-        /lead leadchange /leadchange lead store store
-        %text /spacecount dec
-        chopline
-        countspaces
-        countchars
-        /gap { mark X currentpoint pop sub } stopped { cleartomark mark 0 } if exch pop store
-        /spaceadjust spacecount 0 ne { gap spacecount div }{ 0 } ifelse store
-        /charadjust charcount 0 ne { gap charcount div }{ 0 } ifelse store
-        setline
-        %(0)=only
-        /spacecount 0 store
+        currentline 0 get 0 gt {
+            updatelead
+            /Y lead -=
+            /lead leadchange /leadchange lead store store
+            %text /spacecount dec
+            chopline
+            countspaces
+            countchars
+            /gap { mark X currentpoint pop sub } stopped { cleartomark mark 0 } if exch pop store
+            /spaceadjust spacecount 0 ne { gap spacecount div }{ 0 } ifelse store
+            /charadjust charcount 0 ne { gap charcount div }{ 0 } ifelse store
+            setline
+            %(0)=only
+            /spacecount 0 store
+        } if
         y Y lt { x Y moveto }
                { nextpage } ifelse
     }
@@ -550,9 +552,10 @@ dicttomark def % /pairs
 } bind def
 
 % execute proc on the 'a' portion of string, return 'b' portion
+% on_a is a 'fin' function from an alteration
 % {on_a} ([a]b)  delim  (b)
 /delim {
-    exch /process cvx exch /exec cvx 3 array astore cvx exch
+    exch /process cvx exch /exec cvx 3 array astore cvx exch  % {on_a} = {process {on_a} exec}
     first rhs       % on_a (a]b) (])
     3 copy exch pop % on_a (a]b) (]) on_a (]) 
     deferal         % on_a (a]b) (]) not    %not-clause
@@ -794,15 +797,20 @@ dicttomark newalter
     newalter
 } def
 
+/eolbefore mark
+    /ini { ( ) addwordtoline eol 0 }
+    /fin { pop }
+dicttomark newalter
+
 /eolafter mark
     /ini { 0 }
-    /fin { pop eol }
+    /fin { pop ( ) addwordtoline eol }
 dicttomark newalter
 
 /hardeol mark
     /ini {
         [
-        text /heol get text /heol { eol } put
+        text /heol get text /heol { ( ) addwordtoline eol } put
         text /settext get text /settext {
             fontchange {
                 fontfam tty 4 mul bold 2 mul add italic add get setfont
@@ -853,9 +861,9 @@ dicttomark newalter
 /right { hardeol fullgap nojustify eolafter } addstyle
 /center { hardeol halfgap nojustify eolafter } addstyle
 
-/verbatim { hardeol noblank nojustify } addstyle
+/verbatim { hardeol noblank nojustify eolafter } addstyle
 
-/quotation { addindent addrightindent nojustify eolafter } addstyle
+/quotation { addindent addrightindent eolbefore eolafter } addstyle
 
 /heading { eolafter b i } addstyle
 /code { b t } addstyle
@@ -894,8 +902,9 @@ for fully-justified blocks (with custom kerning).
 
 @Begin{quotation}
 The Scribe markup language defined the words, lines, pages, spacing, headings, footings, footnotes, numbering, tables of contents, etc. in a way similar to HTML. 
-@End{quotation}
+
 @right{http://en.wikipedia.org/wiki/Scribe_(markup_language)}
+@End{quotation}
 
 There are various ways of executing a command to change
 a section of text. All commands are introduced by the @@  character,
@@ -912,6 +921,7 @@ with various sets of delimiters.
     @@ i `italics' @{tab currentpoint exch pop moveto}@i `italics'
     @@ i :italics; @{tab currentpoint exch pop moveto}@i :italics;
 @End{verbatim}
+@{/justify? true store}
 
 These last two require an extra space after the command name since
 the backquote and colon are not postscript delimiters.
