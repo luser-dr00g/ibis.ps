@@ -225,11 +225,11 @@ dicttomark def % /dev
 /text mark
 
     %parameters
-    /leftgap 0   %  0 | .5 | 1  proportion of the gap to skip at the left
+    /leftgap 0   %  proportion of the gap to skip at the left. .5==centered 1==flush-right
     /justify? true
     /kerning? true
     /fontsize 10
-    /lead 13
+    /lead 12
     /italic 0
     /bold 0
     /tty 0
@@ -886,7 +886,7 @@ dicttomark newalter
 
 /verbatim { hardeol noblank nojustify eolafter } addstyle
 
-/quotation { eolbefore addindent addrightindent tightlead eolafter } addstyle
+/quotation { addindent addrightindent tightlead eolbefore eolafter } addstyle
 
 /heading { eolbefore b i font+ eolafter } addstyle
 /code { b t } addstyle
@@ -918,7 +918,7 @@ default % nb. calls text begin. dictstack now contains: <ibisdict> <text>
 currentfile ibis
 
 @comment This is a comment.
-This is normal text.
+@c This is a comment.
 
 @heading{Introduction}
 @code{ibis.ps} implements a typesetting engine and markup language.
