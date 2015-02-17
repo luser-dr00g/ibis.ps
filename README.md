@@ -21,10 +21,14 @@ and began writing its first package, texinfo.
 And the rest is history.
 
 ## Additional background material.  
-RICHARD FURUTA
-Important papers in the history of document preparation systems: basic sources
+RICHARD FURUTA  
+Important papers in the history of document preparation systems: basic sources  
 http://cajun.cs.nott.ac.uk/compsci/epo/papers/volume5/issue1/ep057rf.pdf
 
-The PUB System. A similar program of similar vintage.
+The PUB System. A similar program of similar vintage.  
 http://www.nomodes.com/pub_manual.html
+
+Robert D. Cameron  
+Markup and Style: History and Philosophy  
+http://www.cs.sfu.ca/~cameron/Teaching/470/markup1.html
 
