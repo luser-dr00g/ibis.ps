@@ -4,10 +4,12 @@
 
 %% Simple Functions and Data Structures
 % ibisdict defs
-%/ibisdict 50 dict begin currentdict def
-50 dict /ibisdict 1 index def begin
 
-%optionally dump text to stdout while writing
+%/ibisdict 50 dict begin currentdict def    %define internally
+50 dict /ibisdict 1 index def begin         %define in userdict
+
+% optionally dump text to stdout while writing
+% eg. gs -ddumptext ibis.ps
 /dumptext where { pop
     /show { dup ==  show } bind def
     /ashow { dup ==  ashow } bind def
@@ -24,7 +26,7 @@
 /dicttomark { counttomark dup dict begin 2 idiv { def } repeat pop currentdict end } bind def
 
 
-% Composite Index  inc/dec  -
+% Composite Index/Key  inc/dec  -
 % (n.b. dicts are composite objects, as are arrays and strings)
 /inc { 2 copy get 1 add put } bind def
 /dec { 2 copy get 1 sub put } bind def
@@ -88,7 +90,7 @@ dicttomark def % /dev
 /savebounds { dev /bounds [ x y X Y ] put } bind def
 /restorebounds { dev /bounds get aload pop setbounds } bind def
 /setbounds { % x y X Y  setbounds  -
-    /Y exch def /X exch def /y exch def /x exch def
+    /Y exch store /X exch store /y exch store /x exch store
 } bind def
 /setmargin { % pts  setmargin  -
     dev /size get aload pop
@@ -96,6 +98,7 @@ dicttomark def % /dev
     4 index add 4 1 roll 4 index add 4 1 roll
     setbounds pop savebounds
 } bind def
+0 setmargin % define x X y Y in ibisdict, now
 
 /nextpage {
     showpage
@@ -716,7 +719,7 @@ dicttomark def % /pairs
 % @@ define the at-sign as a command to print itself
 sigil { sigil settext } def
 
-/comment { pop () } def
+/comment { pop () } def % delete the remaining source line, yield empty string back to /process
 /c //comment def
 
 
@@ -730,8 +733,8 @@ sigil { sigil settext } def
 % name dict  newalter  -
 %
 % dict should contain 2 procs
-% -  ini  ?
-% ?  fin  -
+% -  ini  ?     implements the "on" action
+% ?  fin  -     implements the "off" or "undo" action
 % where ini returns an object that should be
 % passed to fin
 /newalter {
