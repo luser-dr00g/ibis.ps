@@ -1,4 +1,5 @@
 %!
+%see manual below for description and usage.
 %(../debug.ps/db5.ps)run %currentfile cvx debug
 
 
@@ -90,7 +91,8 @@ dicttomark def % /dev
 /savebounds { dev /bounds [ x y X Y ] put } bind def
 /restorebounds { dev /bounds get aload pop setbounds } bind def
 /setbounds { % x y X Y  setbounds  -
-    /Y exch store /X exch store /y exch store /x exch store
+    %/Y exch store /X exch store /y exch store /x exch store
+    {Y X y x}{exch store}forall
 } bind def
 /setmargin { % pts  setmargin  -
     dev /size get aload pop
@@ -98,7 +100,7 @@ dicttomark def % /dev
     4 index add 4 1 roll 4 index add 4 1 roll
     setbounds pop savebounds
 } bind def
-0 setmargin % define x X y Y in ibisdict, now
+0 setmargin % define x y X Y in ibisdict, now
 
 /nextpage {
     showpage
@@ -261,6 +263,7 @@ dicttomark def % /dev
 
     % currentline is used as an extendable array of tuples
     %    [  [ (text) <<font>> lead kern? ]*  ]
+    % where kern is set to false for the typewriter fonts.
     /currentline 100 stack
 
     % "end" the currentline by flushing it to the page
@@ -370,7 +373,7 @@ dicttomark def % /dev
         x Y
         %(setline:)= pstack()=
         moveto
-        leftgap gap mul 0 rmoveto
+        leftgap gap mul 0 rmoveto  % this implements flush-right and centered by leftgap=0|.5|1
 
         currentline first 0 get 0 exch getinterval
         %dup == spaceadjust =only( )=only spacecount =
@@ -795,6 +798,10 @@ dicttomark newalter
 dicttomark newalter
 
 % name [ alt-entries ]  addstyle  -
+% a style composes named alt dicts into a new alt dict
+% which performs the combined effects.
+% /ini functions are executed left-to-right at the beginning.
+% /fin functions are executed right-to-left at the end.
 /addstyle { % name arr
     [ /mark cvx 2 index  % name arr [ mark arr
     {          % name arr [ mark ... arr[i]
@@ -856,7 +863,7 @@ dicttomark newalter
 
 /nojustify mark
     /ini { justify? /justify? false store }
-    /fin { /justify exch store }
+    /fin { /justify? exch store }
 dicttomark newalter
 
 /fullgap mark
@@ -920,13 +927,30 @@ default % nb. calls text begin. dictstack now contains: <ibisdict> <text>
 %currentfile /ibis load debug
 currentfile ibis
 
-@comment This is a comment.
-@c This is a comment.
+@heading{@code[ibis.ps]}
+
+@code[ibis] is a markup language and typesetting engine implemented entirely
+in the postscript language. It cam set text in varying alignments (left (duh),
+right, centered, justified) with embedded font changes, and rudimentary kerning
+support.
 
 @heading{Introduction}
-@code{ibis.ps} implements a typesetting engine and markup language.
+As this manual's implementation illustrates, @code[ibis] can be used as a prologue
+with the remaining document appended to the same source. Thus, the whole
+word-processor is embedded @i *in* the document. Or it can be `run` from another
+postscript program, and then execute upon any desired file (including whatever
+file is @code[currentfile] currently).
+
 Text is broken into words and fitted onto lines, adjusting spacing
-for fully-justified blocks (with custom kerning).
+for fully-justified blocks.
+
+A comment in the source may be introduced by the @code[@@ comment] command, or its
+shorter alias @code[@@ c]. 
+It consumes the remained text on the source line.
+
+  @@ comment This is a comment.
+  @comment This is a comment.
+  @c This is a comment.
 
 @Begin{quotation}
 The Scribe markup language defined the words, lines, pages, spacing, headings, footings, footnotes, numbering, tables of contents, etc. in a way similar to HTML. 
@@ -953,7 +977,6 @@ with various sets of delimiters.
     @@ i `italics' @{tab currentpoint exch pop moveto}@i `italics'
     @@ i :italics; @{tab currentpoint exch pop moveto}@i :italics;
 @End{verbatim}
-@{/justify? true store}
 
 These last two require an extra space after the command name since
 the backquote and colon are not postscript delimiters.
@@ -979,8 +1002,14 @@ executed with 'exec', it can even be a postscript procedure.
     @@ {/Courier 11 selectfont}text in Courier
     @{/Courier 11 selectfont}text in Courier
 @End{verbatim}
-@{/justify? true store}
 @{oldfont setfont}
+
+Explicit font-changes of this sort are not the primary intention. 
+Rather, the document should be described using logical names for
+the semantic type of information being indicated. These names
+should then be implemented as styles to achieve the desired 
+visual effect. Or define the styles first and then use them.
+But use them.
 
 Only "short-form" commands take a delimited argument. 
 The @@ {arbitrary ps code} commands are not "short-form", 
@@ -994,7 +1023,6 @@ remainder to be printed (it should leave a string on the stack).
     @t[ typewriter-text @i<oblique> ]
     @t[T @b{B @i<I @r `Roman should override all of' italics,> bold,} and typewriter] flags. 
 @End{verbatim}
-@{/justify? true store}
 
 @Begin{right}
 Flush-Right Text.
@@ -1003,7 +1031,6 @@ Flush-Right Text.
 @Begin{center}
 Centered text,
 @End{center}
-@{/justify? true store}
 
 
 I finally remembered what "deferal" was all about. So let's 
@@ -1025,7 +1052,6 @@ So I just wasted some effort getting this to work:
     @Begin{i} italic @Begin{b} bold-italic @End{i} bold @End{b} normal
 @End{verbatim}
 
-@{/justify? true store}
 @{alt/r get/ini get exec pop updatefont}But it's probably best to
 nest things properly anyway.
 This should be considered "backup" behavior.
@@ -1043,6 +1069,10 @@ I think I may have written a bug where the lead can only increase.
 This extra text explains the purpose for this extra rambling text.
 Whew. Fixed.
 
+A shorter command for font size changes has been implemented as
+@code[font+] and @code[font-] which can be used short-form, long-form,
+or composed in a style.
+
 
 I just read in the scribe user manual that the same brackets should
 be able to nest. This I have to fix. I had assumed that the variety
@@ -1054,7 +1084,6 @@ different ones when nesting so it doesn't get confused.
 
 
 @heading{Styles}
-@{/justify? true store}
 I think I've built-up the requisite functionality to implement styles
 in a sensible manner. It's unfortunate that I can't locate the Scribe
 Expert Manual where specifying styles is supposed to be explained.
@@ -1082,14 +1111,26 @@ receives this array, calls @code{aload pop} and the composed @i{fin}
 functions are executed in the reverse order to consume their arguments
 naturally from the operand stack.
 
+@comment Lots of blank lines here --V
+
+
+
 
 I cleaned-up the internal handling of @code{eol} commands, so you should
 be able to add extra newlines between paragraphs in the source which
 are removed and normalized for the output. The @code{blank} function
-which is called for blank lines sets a variable and does nothing if
-repeatedly called. A non-blank line clears the variable.
+which is called for blank lines sets a flag and does nothing if
+repeatedly called. A non-blank line clears the flag.
+And it appears to be working. A new (blank) line in the output can be
+forced by adding a space (or other invisible element?) to the currentline
+and then calling @code[eol]. Simplest at the moment is using
+@code[addwordtoline] which bypasses the space-chopping that @code[settext]
+does.
 
 
+
+
+@comment Lots of blank lines here --^
 
 @bye
 %(stack:)= pstack(---)= currentfile flushfile
