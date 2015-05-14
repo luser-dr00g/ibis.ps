@@ -3,8 +3,11 @@
 %(../debug.ps/db5.ps)run %currentfile cvx debug
 
 
+%
 %% Simple Functions and Data Structures
 % ibisdict defs
+%
+
 
 %/ibisdict 50 dict begin currentdict def    %define internally
 50 dict /ibisdict 1 index def begin         %define in userdict
@@ -36,6 +39,11 @@
 /+= { 1 index load add store } bind def
 /-= { neg += } bind def
 /*= { 1 index load mul store } bind def
+
+
+%
+%% Stack Data Structure
+%
 
 
 % Stack type is an array where element 0 contains the index of the top of the stack.
@@ -76,8 +84,11 @@
 %/t { 6 a b c d e f } cvlit def t 2 sdrop t ==
 
 
+%
 %% Output Device 
 % ibisdict defs
+%
+
 
 % Output device is described only by its bounding box.
 % As text is set on the page, the upper bound decreases so the box remains invariant.
@@ -111,8 +122,10 @@ dicttomark def % /dev
 } bind def
 
 
+%
 %% Kerning Functions
 % ibisdict defs
+%
 
 /kpairs 26 dict def
 
@@ -182,6 +195,7 @@ dicttomark def % /dev
 (ie) 4 kaddpair
 (il) -12 kaddpair
 (in) -5 kaddpair
+(it) -4 kaddpair
 (le) 5 kaddpair
 (li) -3 kaddpair
 (ll) -2 kaddpair
@@ -222,6 +236,7 @@ dicttomark def % /dev
 %(a) 0 get (v) 0 get kgetpair =(-----)=
 
 
+%
 %% /text Dictionary
 % text defs
 
@@ -506,6 +521,7 @@ dicttomark def % /dev
 dicttomark def % /text
 
 
+%
 %% Manuscript Processing
 % ibisdict defs
 
@@ -688,6 +704,11 @@ dicttomark def % /pairs
 } bind def
 
 
+%
+% Main interface.
+% /ibis{} function
+%
+
 /src null def        % input file
 /buf 200 string def  % line buffer
 /exitflag false def
@@ -726,8 +747,10 @@ sigil { sigil settext } def
 /c //comment def
 
 
-%% Alterations, aka Environments
+%
+%% Alterations, aka Environments -- the basis of Styles 
 % ibisdict and alt defs
+%
 
 % dict for alteration dictionaries
 /alt 20 dict def
@@ -956,7 +979,7 @@ It consumes the remained text on the source line.
 The Scribe markup language defined the words, lines, pages, spacing, headings, footings, footnotes, numbering, tables of contents, etc. in a way similar to HTML. 
 
 
-@right{http://en.wikipedia.org/wiki/Scribe_(markup_language)}
+@right{-- @code[http://en.wikipedia.org/wiki/Scribe_(markup_language)]}
 @End{quotation}
 
 
@@ -1010,6 +1033,16 @@ the semantic type of information being indicated. These names
 should then be implemented as styles to achieve the desired 
 visual effect. Or define the styles first and then use them.
 But use them.
+
+Rather than deal with single font changes, ibis prefers to 
+work with a font @i{family} with 3 orthogonal options:
+@r{Roman}/@t{Tty}, @b{Bold}/Not-Bold, @i{Italic}/Not-Italic,
+which can be variously combined.
+
+The product of this is 8 fonts. The eight fonts defined in
+this prototype are: @code{ /Palatino-Roman /Palatino-Italic
+/Palatino-Bold /Palatino-BoldItalic /Courier /Courier-Oblique
+/Courier-Bold } and @code{ /Courier-BoldOblique }.
 
 Only "short-form" commands take a delimited argument. 
 The @@ {arbitrary ps code} commands are not "short-form", 
@@ -1116,6 +1149,9 @@ naturally from the operand stack.
 
 
 
+
+
+
 I cleaned-up the internal handling of @code{eol} commands, so you should
 be able to add extra newlines between paragraphs in the source which
 are removed and normalized for the output. The @code{blank} function
@@ -1130,7 +1166,12 @@ does.
 
 
 
+
+
+
 @comment Lots of blank lines here --^
+
+
 
 @bye
 %(stack:)= pstack(---)= currentfile flushfile
