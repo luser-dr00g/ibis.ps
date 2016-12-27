@@ -1,5 +1,5 @@
 %!
-%see manual below for description and usage.
+%see (manual.ibis) for description and usage.
 %(../debug.ps/db5.ps)run %currentfile cvx debug
 
 
@@ -16,6 +16,8 @@
 (kerning.ps) run
 (textset.ps) run
 (manuscript.ps) run
+(styles.ps) run
+
 
 %
 % Main interface.
@@ -58,8 +60,6 @@ sigil { sigil settext } def
 
 /comment { pop () } def % delete the remaining source line, yield empty string back to /process
 /c //comment def
-
-(styles.ps) run
 
 /default {
     text begin
