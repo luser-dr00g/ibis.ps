@@ -1,0 +1,31 @@
+%
+%% Simple Functions and Data Structures
+
+% optionally dump text to stdout while writing
+% eg. gs -ddumptext ibis.ps
+/dumptext where { pop
+    /show { dup ==  show } bind def
+    /ashow { dup ==  ashow } bind def
+    /widthshow { dup ==  widthshow } bind def
+    /kshow { dup ==  kshow } bind def
+} if
+
+% essentially the same as level-2 >> operator
+% but it is used in an attempt at level-1 compatibility
+% but primarily for historical reasons:
+% in 2011, xpost did not have >>
+%
+% mark k1 v1 .. kN vN  dicttomark  dict(N)
+/dicttomark { counttomark dup dict begin 2 idiv { def } repeat pop currentdict end } bind def
+
+
+% Composite Index/Key  inc/dec  -
+% (n.b. dicts are composite objects, as are arrays and strings)
+/inc { 2 copy get 1 add put } bind def
+/dec { 2 copy get 1 sub put } bind def
+
+% /numeric-variable addend  +=  -
+/+= { 1 index load add store } bind def
+/-= { neg += } bind def
+/*= { 1 index load mul store } bind def
+

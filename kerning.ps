@@ -1,0 +1,114 @@
+
+%
+%% Kerning Functions
+% ibisdict defs
+%
+
+/kpairs 26 dict def
+
+% (ab) n  kaddpair  -
+/kaddpair {
+    1 index 1 get  % (ab) n 98
+    exch [ 3 1 roll >>  % (ab) <<98 n>>
+    exch 0 get  % <<98 n>> 97
+    exch kpairs 3 1 roll put
+} bind def
+
+% 97 98  kgetpair  n
+/kgetpair {
+    kpairs 3 2 roll 2 copy known { % k2 <<>> k1 
+        get  % k2 <<>>
+        exch 2 copy known { % <<>> k2
+            get
+        }{
+            pop pop 0
+        } ifelse
+    }{
+        pop pop pop 0
+    } ifelse
+} bind def
+
+% proc str  kstringwidth  dx dy
+/kstringwidth {
+    dup stringwidth 3 2 roll           % p x y s
+    dup length 1 gt {                  % p x y s
+        0 1 2 index length 2 sub       % p x y s 0 1 len(s)-2
+        {                              % p x y s i
+            2 copy get                 % p x y s i s[i]
+            2 index 3 2 roll 1 add get % p x y s s[i] s[i+1]
+            gsave 0 0 moveto
+            5 index exec
+            currentpoint               % p x y s dx dy
+            grestore
+            4 3 roll add 3 1 roll      % p x y+=dy s dx
+            4 3 roll add 3 1 roll      % p x+=dx y s
+        } for
+    } if                               % p x y s
+    pop 3 2 roll pop                   % x y
+} bind def
+
+%some tweaks for on-screen Palatino (ie. URW Palladio)
+(ac) 7 kaddpair
+(al) 3 kaddpair
+(am) 3 kaddpair
+(an) 3 kaddpair
+(av) -10 kaddpair
+(bl) 4 kaddpair
+(ca) 4 kaddpair
+(ce) 8 kaddpair
+(ch) -3 kaddpair
+(ck) 4 kaddpair
+(co) 5 kaddpair
+(cu) -5 kaddpair
+(de) -5 kaddpair
+(ec) 13 kaddpair
+(ed) 7 kaddpair
+(el) 15 kaddpair
+(em) 12 kaddpair
+(en) 7 kaddpair
+(ex) -8 kaddpair
+(he) 5 kaddpair
+(hi) 5 kaddpair
+(ie) 4 kaddpair
+(il) -12 kaddpair
+(in) -5 kaddpair
+(it) -4 kaddpair
+(le) 5 kaddpair
+(li) -3 kaddpair
+(ll) -2 kaddpair
+(lo) 5 kaddpair
+(ly) 7 kaddpair
+(mm) -10 kaddpair
+(nd) 5 kaddpair
+(nn) -10 kaddpair
+(no) 5 kaddpair
+(nt) 5 kaddpair
+(om) -2 kaddpair
+(on) -2 kaddpair
+(os) 4 kaddpair
+(ou) -10 kaddpair
+(re) 7 kaddpair
+(ri) 10 kaddpair
+(rl) 3 kaddpair
+(rn) -5 kaddpair
+(rp) 5 kaddpair
+(se) 5 kaddpair
+(sp) -5 kaddpair
+(ss) 5 kaddpair
+(st) 4 kaddpair
+(te) 5 kaddpair
+(ti) 7 kaddpair
+(to) 7 kaddpair
+(tp) 10 kaddpair
+(tr) -3 kaddpair
+(ul) -5 kaddpair
+(us) -5 kaddpair
+(ut) -10 kaddpair
+(xe) -5 kaddpair
+(xt) -2 kaddpair
+(Al) -15 kaddpair
+(An) -10 kaddpair
+(Te) -5 kaddpair
+(Th) -7 kaddpair
+%(a) 0 get (v) 0 get kgetpair =(-----)=
+

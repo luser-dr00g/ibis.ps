@@ -1,0 +1,42 @@
+%
+%% Stack Data Structure
+%
+
+
+% Stack type is an array where element 0 contains the index of the top of the stack.
+% An overflow of the stack will trigger a rangecheck error in `put`.
+% An underflow will trigger a typecheck in get
+%
+% n  stack  array{n+1}:[0]=0
+/stack { 1 add array dup 0 0 put } bind def  % who needs the real stack when there's pstack??
+/top { dup 0 get get } bind def % S  top  a
+/spop { dup top exch 0 dec } bind def % S  spop  a  (S{n}->S'(n-1})
+/spush { % S a  spush  -  (S{n}->S'{n+1})
+    dup type /stringtype eq { dup length string copy } if
+    1 index 0 inc
+    1 index 0 get exch put
+} bind def
+/sdrop { % S i  sdrop  -  (S{i}->removed)
+    %(sdrop:)=
+    1 index 0 get      % S i c
+    1 index sub %1 sub  % S i c-i-1
+    %pstack()=
+    dup 0 gt {
+        { % S i
+            2 copy 2 copy % S i S i S i
+            1 add get put % S' i
+            1 add         % S i=i+1
+        } repeat % S' i
+    }{
+        pop
+    } ifelse
+    pop
+    0 dec    % S'
+} bind def
+% 1 2 3 4 5 6  < array index
+% -----------
+% a b c d e f 2 sdrop
+% a   c d e f  6-2=4 -1=3
+% a c d e f
+%/t { 6 a b c d e f } cvlit def t 2 sdrop t ==
+

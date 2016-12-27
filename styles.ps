@@ -1,0 +1,177 @@
+
+%
+%% Alterations, aka Environments -- the basis of Styles 
+% ibisdict and alt defs
+%
+
+% dict for alteration dictionaries
+/alt 20 dict def
+
+% install an environment in the alterations dict
+% name dict  newalter  -
+%
+% dict should contain 2 procs
+% -  ini  ?     implements the "on" action
+% ?  fin  -     implements the "off" or "undo" action
+% where ini returns an object that should be
+% passed to fin
+/newalter {
+    %install in alt dict
+    2 copy alt 3 1 roll put
+    %create short-form procedure
+    pop [ 1 index /short cvx ] cvx def
+} bind def
+
+% if fontchange is true, settext will reload the font from fontfam
+% using the current values of bold italic tty
+/updatefont { /fontchange true store } bind def
+
+%roman font
+/r mark
+    /ini { tty 4 mul bold 2 mul italic add add
+        /bold 0 store
+        /italic 0 store
+        /tty 0 store
+        updatefont }
+    /fin { dup 2 mod /italic exch store
+        2 idiv dup 2 mod /bold exch store
+        2 idiv /tty exch store
+        updatefont }
+dicttomark newalter
+
+%add italic if roman or bold
+% or oblique if tty
+/i mark
+    /ini { italic /italic 1 store updatefont }
+    /fin { /italic exch store updatefont }
+dicttomark newalter
+
+%add bold
+/b mark
+    /ini { bold /bold 1 store updatefont }
+    /fin { /bold exch store updatefont }
+dicttomark newalter
+
+%tty font
+/t mark
+    /ini { tty /tty 1 store updatefont }
+    /fin { /tty exch store updatefont }
+dicttomark newalter
+
+/font+ mark
+    /ini { [ fontsize /fontsize 1.25 *= lead /lead 1.25 *= ]
+            setfontfam updatefont }
+    /fin { aload pop /lead exch store /fontsize exch store
+            setfontfam updatefont }
+dicttomark newalter
+
+/font- mark
+    /ini { [ fontsize /fontsize .8 *= lead /lead .8 *= ]
+            setfontfam updatefont }
+    /fin { aload pop /lead exch store /fontsize exch store
+            setfontfam updatefont }
+dicttomark newalter
+
+% name [ alt-entries ]  addstyle  -
+% a style composes named alt dicts into a new alt dict
+% which performs the combined effects.
+% /ini functions are executed left-to-right at the beginning.
+% /fin functions are executed right-to-left at the end.
+/addstyle { % name arr
+    [ /mark cvx 2 index  % name arr [ mark arr
+    {          % name arr [ mark ... arr[i]
+        alt exch get  % name arr [ mark ... dict
+        /ini get /exec cvx  % name arr [ mark ... {ini} exec
+    } forall
+    %(1:)= pstack() =
+    (]) cvn cvx
+    %(2:)= pstack() =
+    ] cvx  % name arr { mark {{ini} exec}* ] }
+    mark /ini 4 2 roll exch  % name mark /ini {{ini exec}*} arr
+    [ exch  % name mark /ini {ini*} [ arr
+    {  % name mark /ini {ini*} [ ... arr[i]
+        alt exch get  % name mark /ini {ini*} [ ... dict
+        /fin get /exec cvx  % name mark /ini {ini*} [ ... {fin} exec
+        counttomark 2 roll  % name mark /ini {ini*} [ {fin} exec ...
+    } forall
+    %(3:)= pstack() =
+    /aload cvx /pop cvx counttomark 2 roll  % n [ /ini{ini*} [ aload pop {fin exec}*
+    ] cvx /fin exch  % name [ /ini{ini*} /fin{fin*}
+    dicttomark
+    newalter
+} def
+
+/eolbefore mark
+    /ini { ( ) addwordtoline eol 0 }
+    /fin { pop }
+dicttomark newalter
+
+/eolafter mark
+    /ini { 0 }
+    /fin { pop ( ) addwordtoline eol }
+dicttomark newalter
+
+/hardeol mark
+    /ini {
+        [
+        text /heol get text /heol { ( ) addwordtoline eol } put
+        text /settext get text /settext {
+            fontchange {
+                fontfam tty 4 mul bold 2 mul add italic add get setfont
+                /fontchange false store
+            } if
+            addwordtoline
+        } put
+        ]
+    }
+    /fin {
+        aload pop
+        text /settext 3 2 roll put
+        text /heol 3 2 roll put
+    }
+dicttomark newalter
+
+/noblank mark
+    /ini { text /blank get text /blank { } put }
+    /fin { text /blank 3 2 roll put }
+dicttomark newalter
+
+/nojustify mark
+    /ini { justify? /justify? false store }
+    /fin { /justify? exch store }
+dicttomark newalter
+
+/fullgap mark
+    /ini { text /leftgap get text /leftgap 1 put }
+    /fin { text /leftgap 3 2 roll put }
+dicttomark newalter
+
+/halfgap mark
+    /ini { text /leftgap get text /leftgap .5 put }
+    /fin { text /leftgap 3 2 roll put }
+dicttomark newalter
+
+/addindent mark
+    /ini { x /x x 36 add store }
+    /fin { /x exch store }
+dicttomark newalter
+
+/addrightindent mark
+    /ini { X /X X 36 sub store }
+    /fin { /X exch store }
+dicttomark newalter
+
+/tightlead mark
+    /ini { lead /lead .9 *= }
+    /fin { /lead exch store }
+dicttomark newalter
+
+/right { hardeol fullgap nojustify eolafter } addstyle
+/center { hardeol halfgap nojustify eolafter } addstyle
+
+/verbatim { hardeol noblank nojustify eolafter } addstyle
+
+/quotation { addindent addrightindent tightlead eolbefore eolafter } addstyle
+
+/heading { eolbefore b i font+ eolafter } addstyle
+/code { b t } addstyle

@@ -1,0 +1,285 @@
+
+%
+%% /text Dictionary
+% text defs
+
+% Text setting
+%
+/text mark
+
+    %parameters
+    /leftgap 0   %  proportion of the gap to skip at the left. .5==centered 1==flush-right
+    /justify? true
+    /kerning? true
+    /fontsize 10
+    /lead 12
+    /italic 0
+    /bold 0
+    /tty 0
+    /fontchange true  % set to true to make a font-parameter change take effect
+
+    /spacecount 0
+    /charcount 0
+    /gap 0
+    /spaceadjust 0
+    /charadjust 0
+    /justblank false
+    /fontfam null
+
+    /setfontfam {
+    text /fontfam [ %  -roman- -italic- -bold- -bold-italic- 
+        /Palatino-Roman findfont fontsize scalefont
+        /Palatino-Italic findfont fontsize scalefont
+        /Palatino-Bold findfont fontsize scalefont
+        /Palatino-BoldItalic findfont fontsize scalefont
+        /Courier findfont fontsize .9 mul scalefont
+        /Courier-Oblique findfont fontsize .9 mul scalefont
+        /Courier-Bold findfont fontsize .9 mul scalefont
+        /Courier-BoldOblique findfont fontsize .9 mul scalefont
+    ] put
+    }
+
+    % currentline is used as an extendable array of tuples
+    %    [  [ (text) <<font>> lead kern? ]*  ]
+    % where kern is set to false for the typewriter fonts.
+    /currentline 100 stack
+
+    % "end" the currentline by flushing it to the page
+    /eol {
+        currentline 0 get 0 gt {
+            updatelead
+            /Y lead -=
+            /lead leadchange /leadchange lead store store
+            %text /spacecount dec
+            chopline
+            countspaces
+            countchars
+            /gap { mark X currentpoint pop sub } stopped { cleartomark mark 0 } if exch pop store
+            /spaceadjust spacecount 0 ne { gap spacecount div }{ 0 } ifelse store
+            /charadjust charcount 0 ne { gap charcount div }{ 0 } ifelse store
+            setline
+            %(0)=only
+            /spacecount 0 store
+        } if
+        y Y lt { x Y moveto }
+               { nextpage } ifelse
+    }
+
+    % "hard" return
+    /heol { ( ) setword }
+
+    % type the daughter line unjustified
+    /blank {
+        justblank not {
+            [ /eol cvx /justify? justify? /store cvx ] cvx /justify? false store exec
+            /Y lead .5 mul -=
+            /justblank true store
+        } if
+    }
+
+    /countspaces {
+        0
+        currentline first 0 get 0 exch getinterval {
+            0 get
+            %( ) eq { 1 add } if
+            {
+                32 eq { 1 add } if
+            } forall
+        } forall
+        %spacecount =
+        %dup =
+        /spacecount exch store
+    }
+
+    /countchars {
+        0
+        currentline first 0 get 0 exch getinterval {
+            0 get length add
+        } forall
+        /charcount exch store
+    }
+
+    % trim leading/trailing space
+    /chopline {
+        currentline 0 get 1 ge {
+            {
+                currentline 1 get 0 get dup ( ) eq exch () eq or not
+                {
+                    exit
+                } if
+                %(chopping initial space)=
+                %(-)=only
+                currentline 1 sdrop
+                text /spacecount dec
+                currentline 0 get 1 lt {
+                    exit
+                } if
+            } loop
+        } if
+        currentline 0 get 1 ge {
+            {
+                currentline top 0 get ( ) ne {
+                    exit
+                } if
+                %(chopping trailing space)=
+                %(-)=only
+                currentline spop pop
+                text /spacecount dec
+                currentline 0 get 1 lt {
+                    exit
+                } if
+            } loop
+        } if
+    }
+
+    % scan currentline and set lead to the max lead from the line
+    % stash previous value as /leadchange
+    /updatelead {
+        /leadchange lead store
+        currentline first 0 get 0 exch getinterval
+        {
+            2 get dup leadchange gt { /leadchange exch store }{ pop } ifelse
+        } forall
+        %lead leadchange lt { /lead leadchange /leadchange lead store store } if
+        %/lead leadchange store
+        /lead leadchange /leadchange lead store store
+    }
+
+    % show the text in currentline using associated font(s).
+    % clear currentline.
+    /setline {
+        x Y
+        %(setline:)= pstack()=
+        moveto
+        leftgap gap mul 0 rmoveto  % this implements flush-right and centered by leftgap=0|.5|1
+
+        currentline first 0 get 0 exch getinterval
+        %dup == spaceadjust =only( )=only spacecount =
+        {
+            %pstack()=
+            %aload pop
+            dup 0 get 1 index 1 get
+            setfont
+            exch 3 get
+            {
+                justify? {
+                    dup ( ) eq { spaceadjust 0 rmoveto } if
+                    spacecount 0 eq {
+                        { kgetpair charadjust add 0
+                            currentfont /FontMatrix get dtransform rmoveto }
+                    }{
+                        { 1 index 32 eq { pop pop spaceadjust 0 }{ kgetpair 0 } ifelse
+                            currentfont /FontMatrix get dtransform rmoveto }
+                    } ifelse
+                }{
+                    { kgetpair 0 currentfont /FontMatrix get dtransform rmoveto }
+                } ifelse
+                exch kshow
+            }{
+                justify? {
+                    spacecount 0 eq {
+                        show
+                    }{
+                        spaceadjust 0 32 4 3 roll widthshow
+                    } ifelse
+                }{
+                    show
+                } ifelse
+            } ifelse
+        } forall
+        currentline 0 0 put
+        dev /marksonpage true put
+        %eol
+    }
+
+    % allocate new string
+    % allocate [ (str) <<font>> lead kern? ] tuple
+    % push to currentline stack
+    /addwordtoline {
+        dup length string copy
+        %dup length 1 add string dup 3 1 roll copy pop  % copy and append space
+        %dup dup length 1 sub ( ) putinterval
+        %currentpoint pop =
+        %(setword:)= pstack()=
+        %currentline == flushpage flush(%lineedit)(r)file pop 
+        kerning? tty 0 eq and {
+            { kgetpair 0 currentfont /FontMatrix get dtransform rmoveto }
+            1 index kstringwidth
+        }{
+            dup stringwidth
+        } ifelse
+        %pstack()=
+        pop dup currentpoint pop add X ge {
+            eol %setline
+            %fontchange {
+                fontfam tty 4 mul bold 2 mul add italic add get setfont
+                /fontchange false store
+            %} if
+        } if
+        0 rmoveto
+        currentfont lead kerning? tty 0 eq and 4 array astore
+        currentline exch spush
+    }
+
+    % do nothing for initial empty or blank strings.
+    % check stringwidth+currentpoint and flush currentline
+    % by calling eol (which calls setline) if too long.
+    % rmoveto by the stringwidth
+    % add word to currentline.
+    /setword {
+        dup ( ) eq {
+            currentline 0 get 0 eq {
+                %(-)=only
+                text /spacecount dec
+                pop
+            }{
+                currentline top 0 get ( ) eq {
+                    %(-)=only
+                    text /spacecount dec
+                    pop
+                }{
+                    addwordtoline
+                } ifelse
+            } ifelse
+        }{
+            dup () eq {
+                pop
+            }{
+                addwordtoline
+            } ifelse
+        } ifelse
+    }
+
+    % used like show, this is the call for adding text to the output.
+    % chops text into words and calls setword on each.
+    /settext {
+        fontchange {
+            fontfam tty 4 mul bold 2 mul add italic add get setfont
+            /fontchange false store
+        } if
+        %show
+        /initialspace false store
+        ( ){ anchorsearch {/initialspace true store}{ exit } ifelse } loop %strip initial spaces
+        initialspace { ( ) setword } if
+        ( ) {
+            %search exch setword not { exit } if
+            search {
+                setword 
+                { anchorsearch not {exit} if } loop
+                %currentline 0 get 0 gt {
+                    %(+)=only
+                    ( ) dup setword
+                    text /spacecount inc
+                %} if
+            }{
+                setword
+                %(+)=only
+                %( ) setword
+                %text /spacecount inc
+                exit
+            } ifelse
+        } loop
+    }
+
+dicttomark def % /text
+

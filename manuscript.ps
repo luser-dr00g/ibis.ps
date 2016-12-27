@@ -1,0 +1,183 @@
+
+%
+%% Manuscript Processing
+% ibisdict defs
+
+
+% find takes 3 procedures, a string and search-string
+% and executes on_a and on_b upon the returned substrings if found
+% or the not procedure if not found
+/find {               % {not} {on_b} {on_a} (aXb) (X)  find  -
+    search {          % n b a (b) (X) (a)
+        4 1 roll pop  % n b (a) a (b)
+        4 1 roll      % n (b) b (a) a
+        5 -1 roll pop % (b) b (a) a
+        /exec cvx 5 3 roll % (a) a exec (b) b
+        /exec cvx 6 array astore cvx exec
+        %exec exec
+    }{                   % n b a (a_b)
+        4 1 roll pop pop % (a_b) n
+        exec
+    } ifelse
+} bind def
+%{(n)= =}{(b)= =}{(a)= =} (pretextpost) (text) find
+%(stack:)= pstack
+%quit
+
+%shift a 1-element composite object off of a larger composite object
+/first { % (abc)  first  (bc) (a)
+    dup 1 1 index length 1 sub getinterval exch
+    0 1 getinterval
+} bind def
+
+% delimiter pairs
+/pairs mark
+    ([)(]) (<)(>) (\()(\)) ({)(}) (`)(') (:)(;)
+dicttomark def % /pairs
+
+% ([)  rhs  (])
+% (q)  rhs  (q)
+% (")  rhs  (")
+/rhs { pairs exch 2 copy known { get }{ exch pop } ifelse } bind def
+
+% the nest stack contains unclosed delimiters for nested short-form segments
+% but only if not immediately found on the same input line
+%   eg. @i{ @b( @t< > ) }
+/nest 10 stack def
+
+% {on_a} (])  deferal  {[{on_a} (])] nest exch spush}
+% create a save-it-for-later proc
+% for the not-found clause of find
+/deferal {
+    2 array astore
+    [ exch /nest cvx /exch cvx /spush cvx ] cvx
+} bind def
+
+% execute proc on the 'a' portion of string, return 'b' portion
+% on_a is a 'fin' function from an alteration
+% {on_a} ([a]b)  delim  (b)
+/delim {
+    exch /process cvx exch /exec cvx 3 array astore cvx exch  % {on_a} = {process {on_a} exec}
+    first rhs       % on_a (a]b) (])
+    3 copy exch pop % on_a (a]b) (]) on_a (]) 
+    deferal         % on_a (a]b) (]) not    %not-clause
+    {}              % on_a (a]b) (]) not on_b  %on_b clause: leave string on stack
+    5 2 roll        % not on_b on_a (a]b) (])
+    %(delim)= pstack()=
+    find
+} bind def
+
+% execute a short-form command, taking delimited argument from string,
+% return remainder of string
+% ([arg]rem) /name  short  (rem)
+/short {
+    %(short)= pstack()=
+    alt exch get % s d
+    dup /ini get exec % s d ?
+    exch /fin get % s ? {}
+    [ 3 1 roll /exec cvx ] cvx exch % undo s
+    delim
+} bind def
+
+% the pending stack contains unclosed environments bracketed by @Begin() @End()
+%
+/pending 10 stack def
+
+% (name)  checkpending  -
+/checkpending {
+    %(checking pending stack)= pending ==
+    {
+        pending 0 get -1 1 {  % (name) i
+            %pstack()=
+            pending 1 index get  % (name) i []
+            0 get 2 index
+            %pstack()=
+            eq {  % (name) i
+                %pstack()=
+                stop
+            } if
+            pop
+        } for
+    } stopped {  % (name) i
+        pending 1 index get 1 get  % (name) i fin-arg
+        3 2 roll alt exch get /fin get exec  % i
+        pending exch sdrop
+    }{ Err:symbol-not-in-pending-stack } ifelse
+} bind def
+
+% perform the @Begin() action for an enviroment
+% ([name]rem)  long  (rem)
+/long {
+    first rhs          % (name]rem) (])
+    {Err:long-form-arg-cannot-span-lines}
+    {}
+    {
+        %pstack()=
+        dup length string copy
+        dup alt exch get /ini get exec
+        2 array astore pending exch
+        %pstack()=
+        spush
+        %pending ==
+    }
+    5 3 roll  % {} {} {} (name]rem) (])
+    find
+} bind def
+
+% perform the @End() action for an environment
+% ([name]rem)  long-end  (rem)
+/long-end {
+    first rhs   % (name]rem) (])
+    {Err:long-form-arg-cannot-span-lines}
+    {}
+    {checkpending} %search pending stack and remove match
+    5 3 roll  % {} {} {} (name]rem) (])
+    find
+} bind def
+
+% long-form commands to enter/leave an environment
+/Begin { long } def
+/End { long-end } def
+
+% execute the first token from the string and process the remainder
+% str  execute  -
+/execute { token { exec process }{ BAD_COMMAND } ifelse } bind def
+
+% the "at" sign indicates the start of an embedded command
+/sigil <40> def
+
+% scan argument string for the sigil and execute command after processing prefix
+/command {
+    {settext} {execute} {settext} 4 3 roll
+    sigil find
+} bind def
+
+% scan string for embedded @commands
+% and call settext for other text.
+/process { % str  process  -
+    %(process:)= pstack()=
+    dup length 0 eq {
+        pop
+        %blank
+    }{
+        nest 0 get 0 gt {
+            {command} {process} nest top aload pop % str {!} {B} {A} (X)
+            exch [ exch   % str {!} {B} (X) [ {A}
+                nest exch /spop cvx exch /pop cvx exch %/process cvx exch
+                    /exec cvx 
+            ] cvx exch  % str {!} {B} {A}' (X)
+            5 4 roll exch % {!} {B} {A} str (X)
+            find
+        %    {process}{process} nest top aload pop  % {!} {B} {A} (X)
+        %    exch [
+        %        %{nest spop pop process {defered "on_a"} exec}
+        %        exch nest exch /spop cvx exch /pop cvx exch /process cvx exch /exec cvx
+        %        ] cvx exch % {!} {B} {A}' (X)
+        %    5 4 roll exch % {!} {B} {A} str (X)
+        %    find
+        }{
+            command
+        } ifelse
+    } ifelse
+} bind def
+

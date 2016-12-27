@@ -1,0 +1,224 @@
+
+@heading{@code[ibis.ps]}
+
+@code[ibis] is a markup language and typesetting engine implemented entirely
+in the postscript language. It can set text in varying alignments (left (duh),
+right, centered, justified) with embedded font changes, and rudimentary kerning
+support.
+
+@heading{Introduction}
+As this manual's implementation illustrates, @code[ibis] can be used as a prologue
+with the remaining document appended to the same source. Thus, the whole
+word-processor is embedded @i *in* the document. Or it can be `run` from another
+postscript program, and then execute upon any desired file (including whatever
+file is @code[currentfile] currently).
+
+Text is broken into words and fitted onto lines, adjusting spacing
+for fully-justified blocks.
+
+A comment in the source may be introduced by the @code[@@ comment] command, or its
+shorter alias @code[@@ c]. 
+It consumes the remained text on the source line.
+
+  @@ comment This is a comment.
+  @comment This is a comment.
+  @c This is a comment.
+
+@Begin{quotation}
+The Scribe markup language defined the words, lines, pages, spacing, headings, footings, footnotes, numbering, tables of contents, etc. in a way similar to HTML. 
+
+
+@right{-- @code[http://en.wikipedia.org/wiki/Scribe_(markup_language)]}
+@End{quotation}
+
+
+There are various ways of executing a command to change
+a section of text. All commands are introduced by the @@  character,
+known internally as the "sigil".
+
+
+The simple command @code{i} for italics, can use the short form 
+with various sets of delimiters.
+
+
+@Begin{verbatim}
+    @@ i[italics] produces @{/tab currentpoint pop def}@i[italics]
+    @@ i(italics) @{tab currentpoint exch pop moveto}@i(italics)
+    @@ i<italics> @{tab currentpoint exch pop moveto}@i<italics>
+    @@ i{italics} @{tab currentpoint exch pop moveto}@i{italics}
+    @@ i `italics' @{tab currentpoint exch pop moveto}@i `italics'
+    @@ i :italics; @{tab currentpoint exch pop moveto}@i :italics;
+@End{verbatim}
+
+These last two require an extra space after the command name since
+the backquote and colon are not postscript delimiters.
+
+If a short-form @code{i} command has its arguments all on
+one source-line, then the @i{ini/fin} pair of functions are orchestrated
+as part of parsing the line. Otherwise if the closing delimiter is not
+on the same source line, a [right-delimiter {fin}] tuple is placed on a
+stack which governs the searching
+and parsing of subsequent lines.
+
+The long form uses the same command names, but it is now the @i{argument}
+to the @@ Begin{} or @@ End{} command.
+
+@@ Begin{i}@Begin{i}Start italics.
+@@ End{i}@End{i}End italics. 
+
+Incidentally, since the command name is scanned with 'token' and
+executed with 'exec', it can even be a postscript procedure.
+@{/oldfont currentfont def}
+
+@Begin{verbatim}
+    @@ {/Courier 11 selectfont}text in Courier
+    @{/Courier 11 selectfont}text in Courier
+@End{verbatim}
+@{oldfont setfont}
+
+Explicit font-changes of this sort are not the primary intention. 
+Rather, the document should be described using logical names for
+the semantic type of information being indicated. These names
+should then be implemented as styles to achieve the desired 
+visual effect. Or define the styles first and then use them.
+But use them.
+
+Rather than deal with single font changes, ibis prefers to 
+work with a font @i{family} with 3 orthogonal options:
+@r{Roman}/@t{Tty}, @b{Bold}/Not-Bold, @i{Italic}/Not-Italic,
+which can be variously combined.
+
+The product of this is 8 fonts. The eight fonts defined in
+this prototype are: @code{ /Palatino-Roman /Palatino-Italic
+/Palatino-Bold /Palatino-BoldItalic /Courier /Courier-Oblique
+/Courier-Bold } and @code{ /Courier-BoldOblique }.
+
+Only "short-form" commands take a delimited argument. 
+The @@ {arbitrary ps code} commands are not "short-form", 
+and do not take an argument but apply directly to the current state.
+But they do receive the remaining portion of the line as a string,
+so a custom command may consume data from the string and yield the
+remainder to be printed (it should leave a string on the stack).
+
+@Begin{verbatim}
+    Now with @b[bold].
+    @t[ typewriter-text @i<oblique> ]
+    @t[T @b{B @i<I @r `Roman should override all of' italics,> bold,} and typewriter] flags. 
+@End{verbatim}
+
+@Begin{right}
+Flush-Right Text.
+@End{right}
+
+@Begin{center}
+Centered text,
+@End{center}
+
+
+I finally remembered what "deferal" was all about. So let's 
+see if it works. It should allow bracketed commands to span
+multiple lines.
+Like so: @i[ This sentence
+should be all italics
+despite spanning lines,
+in a line-oriented
+scanning routine. ]
+And back to normal.
+
+Haha! I just read in the scribe paper that @@ Begin() and @@ End()
+sections should always be properly nested.
+So I just wasted some effort getting this to work:
+
+@Begin{verbatim}
+    @@ Begin{i} italic @@ Begin{b} bold-italic @@ End{i} bold @@ End{b} normal
+    @Begin{i} italic @Begin{b} bold-italic @End{i} bold @End{b} normal
+@End{verbatim}
+
+@{alt/r get/ini get exec pop updatefont}But it's probably best to
+nest things properly anyway.
+This should be considered "backup" behavior.
+
+
+An interest has developed in changing the font size. Currently,
+this can be hacked with explicit postscript. 
+@{/fontsize 5 += /lead 3 += setfontfam updatefont}Big text. 
+@{/fontsize 5 -= /lead 3 -= setfontfam updatefont}back to normal. 
+@{/fontsize 2 *= /lead 1.5 *= setfontfam updatefont}Double-size text. 
+@{/fontsize .5 *= /lead .75 *= setfontfam updatefont}back to normal. 
+@{alt/r get/ini get exec pop updatefont}Has the lead actually been
+reset, or am I fooling myself?
+I think I may have written a bug where the lead can only increase.
+This extra text explains the purpose for this extra rambling text.
+Whew. Fixed.
+
+A shorter command for font size changes has been implemented as
+@code[font+] and @code[font-] which can be used short-form, long-form,
+or composed in a style.
+
+
+I just read in the scribe user manual that the same brackets should
+be able to nest. This I have to fix. I had assumed that the variety
+of bracket choices () [] {} <> was for the convenience of the implementation,
+but I was wrong. It is for the convenience of the user, and the
+implementation has a little more work to do. Currently ibis does not
+correctly handle nesting of the same delimiters, and you should use 
+different ones when nesting so it doesn't get confused.
+
+
+@heading{Styles}
+I think I've built-up the requisite functionality to implement styles
+in a sensible manner. It's unfortunate that I can't locate the Scribe
+Expert Manual where specifying styles is supposed to be explained.
+
+
+So far, a style is a short-hand for any number of "alterations" which
+can be installed and uninstalled in a controlled manner. An alteration
+is a dictionary containing two procedures: @i{ini} and @i{fin}, where
+@i{ini} returns an object which is later passed to @i{fin}. 
+
+
+The font operations have been implemented in terms of alteration dictionaries.
+The @@ i{} command tweaks a variable called @i{italic} and sets a variable
+called @i{fontchange} to @b{true}. The @i{ini} function for @i{i} returns
+the previous value of @i{italic} so that @i{fin}, upon receiving this value
+may restore it.
+
+
+So a @b{style} is a composition of these alteration dictionaries.
+And pretty-much any behavior desired can be realized by constructing 
+custom alteration dictionaries to be composed. The values returned by
+the @i{ini} functions are collected in an array which constitutes the 
+style's @i{ini} function's return value. The style's @i{fin} function 
+receives this array, calls @code{aload pop} and the composed @i{fin}
+functions are executed in the reverse order to consume their arguments
+naturally from the operand stack.
+
+@comment Lots of blank lines here --V
+
+
+
+
+
+
+
+I cleaned-up the internal handling of @code{eol} commands, so you should
+be able to add extra newlines between paragraphs in the source which
+are removed and normalized for the output. The @code{blank} function
+which is called for blank lines sets a flag and does nothing if
+repeatedly called. A non-blank line clears the flag.
+And it appears to be working. A new (blank) line in the output can be
+forced by adding a space (or other invisible element?) to the currentline
+and then calling @code[eol]. Simplest at the moment is using
+@code[addwordtoline] which bypasses the space-chopping that @code[settext]
+does.
+
+
+
+
+
+
+
+@comment Lots of blank lines here --^
+
+
+@bye
