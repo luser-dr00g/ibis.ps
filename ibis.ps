@@ -83,10 +83,10 @@ sigil { sigil settext } def
 %stepon
 %traceon
 
-default % nb. calls text begin. dictstack now contains: <ibisdict> <text>
+%default % nb. calls text begin. dictstack now contains: <ibisdict> <text>
 %currentfile /ibis load debug
 %currentfile ibis
-(manual.ibis) (r) file ibis
+%(manual.ibis) (r) file ibis
 
 %(stack:)= pstack(---)= currentfile flushfile
 
