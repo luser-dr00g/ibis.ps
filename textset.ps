@@ -17,6 +17,7 @@
     /bold 0
     /tty 0
     /fontchange true  % set to true to make a font-parameter change take effect
+    /boustrophedon false
 
     /spacecount 0
     /charcount 0
@@ -25,6 +26,7 @@
     /charadjust 0
     /justblank false
     /fontfam null
+    /lineinpar 0
 
     /setfontfam {
     text /fontfam [ %  -roman- -italic- -bold- -bold-italic- 
@@ -59,10 +61,11 @@
             /charadjust charcount 0 ne { gap charcount div }{ 0 } ifelse store
             setline
             %(0)=only
+	    spacecount charcount le { /lineinpar 1 += } if
             /spacecount 0 store
         } if
         y Y lt { x Y moveto }
-               { nextpage } ifelse
+               { nextpage /lineinpar 0 store } ifelse
     }
 
     % "hard" return
@@ -75,6 +78,7 @@
             /Y lead .5 mul -=
             /justblank true store
         } if
+	/lineinpar 0 store
     }
 
     /countspaces {
@@ -148,6 +152,7 @@
     % show the text in currentline using associated font(s).
     % clear currentline.
     /setline {
+	boustrophedon lineinpar 2 mod 1 eq and { start-right-to-left } if
         x Y
         %(setline:)= pstack()=
         moveto
@@ -189,7 +194,18 @@
         } forall
         currentline 0 0 put
         dev /marksonpage true put
+	boustrophedon lineinpar 2 mod 1 eq and { end-right-to-left } if
         %eol
+    }
+
+    /start-right-to-left {
+	gsave
+	dev /size get 2 get 0 translate
+	-1 1 scale
+    }
+
+    /end-right-to-left {
+	grestore
     }
 
     % allocate new string
